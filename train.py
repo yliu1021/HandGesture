@@ -3,6 +3,7 @@ import time
 
 import tensorflow as tf
 from tensorflow.keras.optimizers import *
+from tensorflow.keras.callbacks import *
 import matplotlib.pyplot as plt
 
 import model
@@ -31,45 +32,71 @@ def temporal_accuracy(y_true, y_pred):
     return acc
 
 
-train_data_generator = data.train_dataset.data_generator(
-    num_frames=EXPERIENCE_TRAJECTORY_SAMPLES,
-    batch_size=BATCH_SIZE
-)
-validation_data_generator = data.validation_dataset.data_generator(
-    num_frames=EXPERIENCE_TRAJECTORY_SAMPLES,
-    batch_size=BATCH_SIZE
-)
+def main():
+    train_data_generator = data.train_dataset.data_generator(
+        num_frames=NUM_FRAMES,
+        batch_size=BATCH_SIZE
+    )
+    validation_data_generator = data.validation_dataset.data_generator(
+        num_frames=NUM_FRAMES,
+        batch_size=BATCH_SIZE
+    )
 
-optimizer = Adam(LEARNING_RATE)
-multi_frame_model.compile(
-    optimizer=optimizer,
-    loss=temporal_crossentropy,
-    metrics=[temporal_accuracy]
-)
+    optimizer = Adam(LEARNING_RATE)
+    multi_frame_model.compile(
+        optimizer=optimizer,
+        loss=temporal_crossentropy,
+        metrics=[temporal_accuracy]
+    )
 
-sample_batch = next(train_data_generator)
-print(f'Testing speed on batch size {BATCH_SIZE}')
-start = time.time()
-multi_frame_model.predict_on_batch(sample_batch)
-end = time.time()
-print(f'Predicted in {end - start}, {(end - start) / BATCH_SIZE} per sample')
+    sample_batch = next(train_data_generator)
+    print(f'Testing speed on batch size {BATCH_SIZE}')
+    start = time.time()
+    multi_frame_model.predict_on_batch(sample_batch)
+    end = time.time()
+    print(f'Predicted in {end - start}, {(end - start) / BATCH_SIZE} per sample')
 
-hist = multi_frame_model.fit(
-    train_data_generator,
-    steps_per_epoch=data.train_dataset.num_samples() // BATCH_SIZE,
-    epochs=EPOCHS,
-    callbacks=None,
-    validation_data=validation_data_generator,
-    validation_steps=VALIDATION_STEPS,
-    max_queue_size=10,
-    workers=1,
-    use_multiprocessing=False,
-    shuffle=True,
-    initial_epoch=0
-)
+    hist = multi_frame_model.fit(
+        train_data_generator,
+        steps_per_epoch=data.train_dataset.num_samples() // BATCH_SIZE,
+        epochs=EPOCHS,
+        callbacks=[
+            ReduceLROnPlateau(monitor='val_temporal_accuracy', factor=0.1, patience=10, mode='max'),
+            EarlyStopping(monitor='val_temporal_accuracy', patience=11, mode='max')
+        ],
+        validation_data=validation_data_generator,
+        validation_steps=VALIDATION_STEPS,
+        max_queue_size=10,
+        workers=1,
+        use_multiprocessing=False,
+        shuffle=True,
+        initial_epoch=0,
+    )
 
-training_dir = './training'
-single_frame_encoder_model_save_dir = os.path.join(training_dir, 'single_frame_encoder.hdf5')
-single_frame_encoder.save(single_frame_encoder_model_save_dir)
-multi_frame_encoder_model_save_dir = os.path.join(training_dir, 'multi_frame_encoder.hdf5')
-multi_frame_model.save(multi_frame_encoder_model_save_dir)
+    training_dir = './training'
+    single_frame_encoder_model_save_dir = os.path.join(training_dir, 'single_frame_encoder.hdf5')
+    single_frame_encoder.save(single_frame_encoder_model_save_dir)
+    multi_frame_encoder_model_save_dir = os.path.join(training_dir, 'multi_frame_encoder.hdf5')
+    multi_frame_model.save(multi_frame_encoder_model_save_dir)
+
+    # Plot training & validation accuracy values
+    plt.plot(hist.history['temporal_accuracy'])
+    plt.plot(hist.history['val_temporal_accuracy'])
+    plt.title('Model accuracy')
+    plt.ylabel('Accuracy')
+    plt.xlabel('Epoch')
+    plt.legend(['Train', 'Test'], loc='upper left')
+    plt.show()
+
+    # Plot training & validation loss values
+    plt.plot(hist.history['loss'])
+    plt.plot(hist.history['val_loss'])
+    plt.title('Model loss')
+    plt.ylabel('Loss')
+    plt.xlabel('Epoch')
+    plt.legend(['Train', 'Test'], loc='upper left')
+    plt.show()
+
+
+if __name__ == '__main__':
+    main()

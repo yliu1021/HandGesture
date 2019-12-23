@@ -11,6 +11,7 @@ from constants import *
 
 dataset_dir = '/home/yuhan/Datasets/jester/'
 video_dir = os.path.join(dataset_dir, '20bn-jester-v1')
+video_cache_dir = os.path.join(dataset_dir, 'cached')
 labels_filename = os.path.join(dataset_dir, 'jester-v1-labels.csv')
 train_filename = os.path.join(dataset_dir, 'jester-v1-train.csv')
 validation_filename = os.path.join(dataset_dir, 'jester-v1-validation.csv')
@@ -81,15 +82,26 @@ class DataSet:
     @staticmethod
     def generate_frame_samples(num_frames=10):
         # returns `num_frames` number of random numbers in [0, 1)
-        return [random.random() for _ in range(num_frames)]
+        return np.sort(np.random.rand(num_frames))
 
     @staticmethod
     def load_images(dir_num, frame_samples):
         if type(dir_num) is not str:
             dir_num = str(dir_num)
         image_files = sorted(glob.glob(os.path.join(video_dir, dir_num, '*.jpg')))
+        num_files = len(image_files)
         if frame_samples is not None:
-            frame_indices = sorted(list(map(lambda x: int(x * len(image_files)), frame_samples)))
+            # frames are 12 fps or 1/12 = 0.0833 seconds apart
+            # that means on average, we must pick frames that are
+            # 12 / AVG_FPS frames apart
+            avg_ind_diff = np.diff(frame_samples).mean() * num_files
+            scale = max(avg_ind_diff / (12 / MIN_FPS), 1)
+            frame_samples /= scale
+            max_increase = 1 - frame_samples.max()
+            des_inc = 0.5 - frame_samples.mean()
+            inc = min(max(random.gauss(des_inc, 0.01), 0), max_increase)
+            frame_samples += inc
+            frame_indices = (frame_samples * (num_files - 1)).astype(np.int)
             image_files = [image_files[i] for i in frame_indices]
         img_size = (IMAGE_WIDTH, IMAGE_HEIGHT)
         images = np.array([cv2.resize(cv2.imread(x), img_size) for x in image_files])
@@ -115,14 +127,14 @@ def main():
     for label in labels:
         print(DataSet.one_hot(label), label)
 
-    for batch in train_dataset.data_generator(num_frames=10, batch_size=64, shuffle=True):
+    for batch in train_dataset.data_generator(num_frames=NUM_FRAMES, batch_size=64, shuffle=True):
         print('Got batch')
         videos, one_hot_labels = batch
         for video, one_hot_label in zip(videos, one_hot_labels):
-            print(one_hot_label)
+            print(one_hot_label, labels[one_hot_label.argmax()])
             for image in video:
                 cv2.imshow('video', image)
-                cv2.waitKey(300)
+                cv2.waitKey(int(1 / MIN_FPS * 1000))
             cv2_keyboard_block()
 
     frame_samples = train_dataset.generate_frame_samples(10)

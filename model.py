@@ -21,21 +21,21 @@ def single_frame_model():
     )(frame_input)
     x = Flatten()(mobile_net_tensor)
     x = Dropout(0.25)(x)
-    x = Dense(EXPERIENCE_TRAJECTORY_DIMS)(x)
+    x = Dense(SINGLE_FRAME_ENCODER_DIMS)(x)
     return Model(frame_input, x, name='single_frame_encoder')
 
 
 def multi_frame_model(single_frame_encoder):
     time_distributed_frame_encoder = TimeDistributed(single_frame_encoder)
 
-    video_input = Input(shape=(EXPERIENCE_TRAJECTORY_SAMPLES, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
+    video_input = Input(shape=(NUM_FRAMES, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
 
     encoded_output = time_distributed_frame_encoder(video_input)
     diffed_outputs = Lambda(tf_diff)(encoded_output)
 
-    x = Conv1D(filters=256, kernel_size=3)(diffed_outputs)
-
-    filter_sizes = [256, 256, 256]
+    x = Conv1D(filters=256, kernel_size=3, dilation_rate=2)(diffed_outputs)
+    x = Conv1D(filters=128, kernel_size=3)(x)
+    filter_sizes = [128, 128]
     for filter_size in filter_sizes:
         res = SeparableConv1D(filters=filter_size, kernel_size=3, depth_multiplier=2, padding='SAME')(x)
         x = Add()([x, res])
@@ -47,7 +47,7 @@ def multi_frame_model(single_frame_encoder):
 def training_model(single_frame_encoder):
     time_distributed_frame_encoder = TimeDistributed(single_frame_encoder)
 
-    inputs = [Input(shape=(EXPERIENCE_TRAJECTORY_SAMPLES, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
+    inputs = [Input(shape=(NUM_FRAMES, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
               for _ in range(TRAIN_BRANCHES+1)]
     encoded_outputs = map(lambda x: time_distributed_frame_encoder(x), inputs)
     diffed_outputs = map(lambda x: Lambda(tf_diff)(x), encoded_outputs)
