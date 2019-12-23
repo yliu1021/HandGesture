@@ -37,9 +37,7 @@ def multi_frame_model(single_frame_encoder):
 
     filter_sizes = [256, 256, 256]
     for filter_size in filter_sizes:
-        res = Dense(filter_size, activation='relu')(x)
-        res = Conv1D(filters=int(filter_size * 1.5), kernel_size=3, padding='SAME')(res)
-        res = Dense(filter_size)(res)
+        res = SeparableConv1D(filters=filter_size, kernel_size=3, depth_multiplier=2, padding='SAME')(x)
         x = Add()([x, res])
 
     x = Dense(NUM_CLASSES)(x)
