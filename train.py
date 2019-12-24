@@ -10,12 +10,6 @@ import model
 import data
 from constants import *
 
-single_frame_encoder = model.single_frame_model()
-multi_frame_model = model.multi_frame_model(single_frame_encoder)
-multi_frame_model.summary()
-num_output_frames = multi_frame_model.output_shape[1]
-print(f'Output frames: {num_output_frames}')
-
 
 def temporal_crossentropy(y_true, y_pred):
     avg_pred = tf.reduce_mean(y_pred, axis=1)
@@ -38,6 +32,18 @@ def main():
         def callable_generator():
             yield from g
         return callable_generator
+
+    training_dir = os.path.join('./training', TRAINING_RUN)
+    tensorboard_dir = os.path.join(training_dir, 'logs')
+    os.makedirs(training_dir, exist_ok=True)
+    os.makedirs(tensorboard_dir, exist_ok=True)
+    single_frame_encoder_model_save_dir = os.path.join(training_dir, 'single_frame_encoder.hdf5')
+    multi_frame_encoder_model_save_dir = os.path.join(training_dir, 'multi_frame_predictor.hdf5')
+
+    single_frame_encoder = model.single_frame_model()
+    multi_frame_model = model.multi_frame_model(single_frame_encoder)
+    single_frame_encoder.summary()
+    multi_frame_model.summary()
 
     train_data_generator = data.train_dataset.data_generator(
         num_frames=NUM_FRAMES,
@@ -84,21 +90,19 @@ def main():
         callbacks=[
             ReduceLROnPlateau(monitor='val_temporal_accuracy', factor=0.1, patience=10, mode='max'),
             EarlyStopping(monitor='val_temporal_accuracy', patience=11, mode='max'),
-            RemoteMonitor()
+            ModelCheckpoint(filepath=os.path.join(training_dir, 'multi_frame_predictor.{epoch:02d}.hdf5')),
+            TensorBoard(log_dir=tensorboard_dir)
         ],
         validation_data=validation_data_generator,
         validation_steps=VALIDATION_STEPS,
         max_queue_size=10,
-        workers=15,
+        workers=16,
         use_multiprocessing=True,
         shuffle=True,
         initial_epoch=0,
     )
 
-    training_dir = './training'
-    single_frame_encoder_model_save_dir = os.path.join(training_dir, 'single_frame_encoder.hdf5')
     single_frame_encoder.save(single_frame_encoder_model_save_dir)
-    multi_frame_encoder_model_save_dir = os.path.join(training_dir, 'multi_frame_encoder.hdf5')
     multi_frame_model.save(multi_frame_encoder_model_save_dir)
 
     # Plot training & validation accuracy values
@@ -108,7 +112,6 @@ def main():
     plt.ylabel('Accuracy')
     plt.xlabel('Epoch')
     plt.legend(['Train', 'Test'], loc='upper left')
-    plt.show()
 
     # Plot training & validation loss values
     plt.plot(hist.history['loss'])
@@ -117,6 +120,7 @@ def main():
     plt.ylabel('Loss')
     plt.xlabel('Epoch')
     plt.legend(['Train', 'Test'], loc='upper left')
+
     plt.show()
 
 

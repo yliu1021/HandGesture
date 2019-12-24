@@ -66,7 +66,7 @@ class DataSet:
     @staticmethod
     def batch(data, batch_size):
         new_data = list()
-        for i in range(0, len(data), batch_size):
+        for i in range(0, len(data) - batch_size, batch_size):
             new_data.append(data[i:i + batch_size])
         return new_data
 
@@ -104,7 +104,7 @@ class DataSet:
             frame_indices = (frame_samples * (num_files - 1)).astype(np.int)
             image_files = [image_files[i] for i in frame_indices]
         img_size = (IMAGE_WIDTH, IMAGE_HEIGHT)
-        images = np.array([cv2.resize(cv2.imread(x), img_size) for x in image_files])
+        images = np.array([cv2.resize(cv2.imread(x), img_size) for x in image_files]) / 255.0
         return images
 
 
