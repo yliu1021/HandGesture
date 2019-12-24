@@ -83,7 +83,8 @@ def main():
         epochs=EPOCHS,
         callbacks=[
             ReduceLROnPlateau(monitor='val_temporal_accuracy', factor=0.1, patience=10, mode='max'),
-            EarlyStopping(monitor='val_temporal_accuracy', patience=11, mode='max')
+            EarlyStopping(monitor='val_temporal_accuracy', patience=11, mode='max'),
+            RemoteMonitor()
         ],
         validation_data=validation_data_generator,
         validation_steps=VALIDATION_STEPS,
