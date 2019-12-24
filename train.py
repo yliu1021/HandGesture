@@ -33,20 +33,21 @@ def temporal_accuracy(y_true, y_pred):
 
 
 def main():
+
+    def yield_from_generator(g):
+        def callable_generator():
+            yield from g
+        return callable_generator
+
     train_data_generator = data.train_dataset.data_generator(
         num_frames=NUM_FRAMES,
-        batch_size=BATCH_SIZE
+        batch_size=BATCH_SIZE,
+        shuffle=False
     )
     validation_data_generator = data.validation_dataset.data_generator(
         num_frames=NUM_FRAMES,
-        batch_size=BATCH_SIZE
-    )
-
-    optimizer = Adam(LEARNING_RATE)
-    multi_frame_model.compile(
-        optimizer=optimizer,
-        loss=temporal_crossentropy,
-        metrics=[temporal_accuracy]
+        batch_size=BATCH_SIZE,
+        shuffle=True
     )
 
     sample_batch = next(train_data_generator)
@@ -55,6 +56,26 @@ def main():
     multi_frame_model.predict_on_batch(sample_batch)
     end = time.time()
     print(f'Predicted in {end - start}, {(end - start) / BATCH_SIZE} per sample')
+
+    train_data_generator = tf.data.Dataset.from_generator(
+        yield_from_generator(train_data_generator),
+        output_types=(tf.float32, tf.float32),
+        output_shapes=(tf.TensorShape([BATCH_SIZE, NUM_FRAMES, IMAGE_HEIGHT, IMAGE_WIDTH, 3]),
+                       tf.TensorShape([BATCH_SIZE, NUM_CLASSES]))
+    )
+    validation_data_generator = tf.data.Dataset.from_generator(
+        yield_from_generator(validation_data_generator),
+        output_types=(tf.float32, tf.float32),
+        output_shapes=(tf.TensorShape([BATCH_SIZE, NUM_FRAMES, IMAGE_HEIGHT, IMAGE_WIDTH, 3]),
+                       tf.TensorShape([BATCH_SIZE, NUM_CLASSES]))
+    )
+
+    optimizer = Adam(LEARNING_RATE)
+    multi_frame_model.compile(
+        optimizer=optimizer,
+        loss=temporal_crossentropy,
+        metrics=[temporal_accuracy]
+    )
 
     hist = multi_frame_model.fit(
         train_data_generator,
@@ -67,8 +88,8 @@ def main():
         validation_data=validation_data_generator,
         validation_steps=VALIDATION_STEPS,
         max_queue_size=10,
-        workers=1,
-        use_multiprocessing=False,
+        workers=15,
+        use_multiprocessing=True,
         shuffle=True,
         initial_epoch=0,
     )
