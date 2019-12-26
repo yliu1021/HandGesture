@@ -1,9 +1,12 @@
 import os
 import time
+import sys
+import glob
 
 import tensorflow as tf
 from tensorflow.keras.optimizers import *
 from tensorflow.keras.callbacks import *
+from tensorflow_model_optimization.python.core.sparsity.keras import prune, pruning_schedule, pruning_callbacks
 import matplotlib.pyplot as plt
 
 import model
@@ -26,7 +29,12 @@ def temporal_accuracy(y_true, y_pred):
     return acc
 
 
-def main():
+def temporal_top_k_accuracy(y_true, y_pred):
+    avg_pred = tf.reduce_mean(y_pred, axis=1)
+    return tf.keras.metrics.sparse_top_k_categorical_accuracy(tf.argmax(y_true, axis=-1), avg_pred, k=2)
+
+
+def main(should_prune=False):
 
     def yield_from_generator(g):
         def callable_generator():
@@ -35,15 +43,26 @@ def main():
 
     training_dir = os.path.join('./training', TRAINING_RUN)
     tensorboard_dir = os.path.join(training_dir, 'logs')
+    pruning_dir = os.path.join(training_dir, 'pruning')
     os.makedirs(training_dir, exist_ok=True)
     os.makedirs(tensorboard_dir, exist_ok=True)
+    os.makedirs(pruning_dir, exist_ok=True)
     single_frame_encoder_model_save_dir = os.path.join(training_dir, 'single_frame_encoder.hdf5')
-    multi_frame_encoder_model_save_dir = os.path.join(training_dir, 'multi_frame_predictor.hdf5')
+    multi_frame_encoder_model_save_dir = os.path.join(training_dir, 'multi_frame_model.hdf5')
+    multi_frame_encoder_weight_model_save_dir = os.path.join(training_dir, 'multi_frame_model_weights.hdf5')
+    starting_epoch = 0
 
     single_frame_encoder = model.single_frame_model()
     multi_frame_model = model.multi_frame_model(single_frame_encoder)
     single_frame_encoder.summary()
     multi_frame_model.summary()
+
+    previous_saves = sorted(glob.glob(os.path.join(training_dir, 'multi_frame_model.??.hdf5')))
+    if len(previous_saves) != 0:
+        last_save = previous_saves[-1]
+        starting_epoch = int(last_save.split('.')[-2])
+        print(f'Restoring weights from last run: {last_save}')
+        multi_frame_model.load_weights(last_save)
 
     train_data_generator = data.train_dataset.data_generator(
         num_frames=NUM_FRAMES,
@@ -76,34 +95,56 @@ def main():
                        tf.TensorShape([BATCH_SIZE, NUM_CLASSES]))
     )
 
+    if should_prune:
+        pruning_params = {
+            'pruning_schedule': pruning_schedule.PolynomialDecay(initial_sparsity=0.50,
+                                                                 final_sparsity=0.90,
+                                                                 begin_step=PRUNING_START_EPOCH,
+                                                                 end_step=PRUNING_END_EPOCH,
+                                                                 frequency=PRUNE_FREQ)
+        }
+        multi_frame_model = prune.prune_low_magnitude(multi_frame_model, **pruning_params)
+
     optimizer = Adam(LEARNING_RATE)
     multi_frame_model.compile(
         optimizer=optimizer,
         loss=temporal_crossentropy,
-        metrics=[temporal_accuracy]
+        metrics=[temporal_accuracy, temporal_top_k_accuracy]
     )
+
+    callbacks = [
+        ReduceLROnPlateau(monitor='val_temporal_accuracy', factor=0.1, patience=10, mode='max'),
+        EarlyStopping(monitor='val_temporal_accuracy', patience=11, mode='max'),
+        ModelCheckpoint(filepath=os.path.join(training_dir, 'multi_frame_model.{epoch:02d}.hdf5')),
+        TensorBoard(log_dir=tensorboard_dir, histogram_freq=2, write_images=True)
+    ]
+
+    if should_prune:
+        callbacks.extend([
+            pruning_callbacks.UpdatePruningStep(),
+            pruning_callbacks.PruningSummaries(log_dir=pruning_dir)
+        ])
 
     hist = multi_frame_model.fit(
         train_data_generator,
         steps_per_epoch=data.train_dataset.num_samples() // BATCH_SIZE,
         epochs=EPOCHS,
-        callbacks=[
-            ReduceLROnPlateau(monitor='val_temporal_accuracy', factor=0.1, patience=10, mode='max'),
-            EarlyStopping(monitor='val_temporal_accuracy', patience=11, mode='max'),
-            ModelCheckpoint(filepath=os.path.join(training_dir, 'multi_frame_predictor.{epoch:02d}.hdf5')),
-            TensorBoard(log_dir=tensorboard_dir)
-        ],
+        callbacks=callbacks,
         validation_data=validation_data_generator,
         validation_steps=VALIDATION_STEPS,
         max_queue_size=10,
         workers=16,
         use_multiprocessing=True,
         shuffle=True,
-        initial_epoch=0,
+        initial_epoch=starting_epoch,
     )
+
+    if should_prune:
+        multi_frame_model = prune.strip_pruning(multi_frame_model)
 
     single_frame_encoder.save(single_frame_encoder_model_save_dir)
     multi_frame_model.save(multi_frame_encoder_model_save_dir)
+    multi_frame_model.save(multi_frame_encoder_weight_model_save_dir, include_optimizer=False)
 
     # Plot training & validation accuracy values
     plt.plot(hist.history['temporal_accuracy'])
@@ -112,6 +153,7 @@ def main():
     plt.ylabel('Accuracy')
     plt.xlabel('Epoch')
     plt.legend(['Train', 'Test'], loc='upper left')
+    plt.show()
 
     # Plot training & validation loss values
     plt.plot(hist.history['loss'])
@@ -120,9 +162,8 @@ def main():
     plt.ylabel('Loss')
     plt.xlabel('Epoch')
     plt.legend(['Train', 'Test'], loc='upper left')
-
     plt.show()
 
 
 if __name__ == '__main__':
-    main()
+    main(should_prune='prune' in sys.argv)

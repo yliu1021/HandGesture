@@ -20,7 +20,8 @@ with open(labels_filename, 'r') as labels_file:
 
 
 class DataSet:
-    def __init__(self, data_filename):
+    def __init__(self, data_filename, augment_images):
+        self.augment_images = augment_images
         self.categorized_data = defaultdict(set)
         self.raw_data = list()
         with open(data_filename, 'r') as data_file:
@@ -44,6 +45,10 @@ class DataSet:
         return images
 
     def data_generator(self, num_frames, batch_size, shuffle=False):
+        if self.augment_images:
+            load_func = self.load_images_augment
+        else:
+            load_func = self.load_images
         while True:
             if shuffle:
                 random.shuffle(self.raw_data)
@@ -53,7 +58,7 @@ class DataSet:
                 video_batch = list()
                 one_hot_label_batch = list()
                 for dir_num, one_hot_label in batch:
-                    images = self.load_images(dir_num, frame_samples)
+                    images = load_func(dir_num, frame_samples)
                     video_batch.append(images)
                     one_hot_label_batch.append(one_hot_label)
                 video_batch = np.array(video_batch)
@@ -85,6 +90,31 @@ class DataSet:
         return np.sort(np.random.rand(num_frames))
 
     @staticmethod
+    def load_images_augment(dir_num, frame_samples):
+        if type(dir_num) is not str:
+            dir_num = str(dir_num)
+        image_files = sorted(glob.glob(os.path.join(video_dir, dir_num, '*.jpg')))
+        num_files = len(image_files)
+        if frame_samples is not None:
+            # frames are 12 fps or 1/12 = 0.0833 seconds apart
+            # that means on average, we must pick frames that are
+            # 12 / AVG_FPS frames apart
+            avg_ind_diff = np.diff(frame_samples).mean() * num_files
+            scale = max(avg_ind_diff / (12 / MIN_FPS), 1)
+            frame_samples /= scale
+            max_increase = 1 - frame_samples.max()
+            des_inc = 0.5 - frame_samples.mean()
+            inc = min(max(random.gauss(des_inc, 0.01), 0), max_increase)
+            frame_samples += inc
+            frame_indices = (frame_samples * (num_files - 1)).astype(np.int)
+            image_files = [image_files[i] for i in frame_indices]
+        img_size = (IMAGE_WIDTH, IMAGE_HEIGHT)
+        images = np.array([cv2.resize(cv2.imread(x), img_size) for x in image_files]) / 255.0
+        images = images * random.gauss(1, 0.2) + random.gauss(0, 0.2)
+        images = np.clip(images, 0, 1)
+        return images
+
+    @staticmethod
     def load_images(dir_num, frame_samples):
         if type(dir_num) is not str:
             dir_num = str(dir_num)
@@ -108,8 +138,8 @@ class DataSet:
         return images
 
 
-train_dataset = DataSet(train_filename)
-validation_dataset = DataSet(validation_filename)
+train_dataset = DataSet(train_filename, augment_images=True)
+validation_dataset = DataSet(validation_filename, augment_images=False)
 
 
 def cv2_keyboard_block():
@@ -126,8 +156,8 @@ def main():
     np.set_printoptions(linewidth=100)
     for label in labels:
         print(DataSet.one_hot(label), label)
-
-    for batch in train_dataset.data_generator(num_frames=NUM_FRAMES, batch_size=64, shuffle=True):
+    dataset = train_dataset
+    for batch in dataset.data_generator(num_frames=NUM_FRAMES, batch_size=64, shuffle=True):
         print('Got batch')
         videos, one_hot_labels = batch
         for video, one_hot_label in zip(videos, one_hot_labels):

@@ -25,10 +25,10 @@ def single_frame_model():
     return Model(frame_input, x, name='single_frame_encoder')
 
 
-def multi_frame_model(single_frame_encoder):
+def multi_frame_model(single_frame_encoder, num_frames=None):
     time_distributed_frame_encoder = TimeDistributed(single_frame_encoder)
 
-    video_input = Input(shape=(None, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
+    video_input = Input(shape=(num_frames, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
 
     encoded_output = time_distributed_frame_encoder(video_input)
     diffed_outputs = Lambda(tf_diff)(encoded_output)

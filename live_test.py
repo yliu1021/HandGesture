@@ -25,14 +25,15 @@ def main():
     plt.xticks(rotation=90)
     plt.tight_layout()
 
-    model = keras_load_model(os.path.join('training', 'multi_frame_encoder.hdf5'), custom_objects={
+    model = keras_load_model(os.path.join('training', 'run1', 'multi_frame_model.hdf5'), custom_objects={
         'temporal_crossentropy': train.temporal_crossentropy,
-        'temporal_accuracy': train.temporal_accuracy
+        'temporal_accuracy': train.temporal_accuracy,
+        'temporal_top_k_accuracy': train.temporal_top_k_accuracy
     })
     cap = cv2.VideoCapture(0)
 
     image_size = (IMAGE_WIDTH, IMAGE_HEIGHT)
-    model_input = np.zeros((1, NUM_FRAMES, IMAGE_HEIGHT, IMAGE_WIDTH, 3), dtype=np.float32)
+    model_input = np.zeros((1, 6, IMAGE_HEIGHT, IMAGE_WIDTH, 3), dtype=np.float32)
 
     def animate(i):
         ret, frame = cap.read()
@@ -51,7 +52,7 @@ def main():
 
         # Display the resulting frame
         cv2.imshow('frame', frame)
-        if cv2.waitKey(500) & 0xFF == ord('q'):
+        if cv2.waitKey(int(1/MIN_FPS * 1000)) & 0xFF == ord('q'):
             cap.release()
             cv2.destroyAllWindows()
             exit(0)
