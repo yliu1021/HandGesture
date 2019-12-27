@@ -27,7 +27,6 @@ def temporal_crossentropy(y_true, y_pred):
 
 def temporal_accuracy(y_true, y_pred):
     avg_pred = temporal_avg(y_pred)
-
     class_id_true = tf.argmax(y_true, axis=-1)
     class_id_pred = tf.argmax(avg_pred, axis=-1)
     acc = tf.cast(tf.equal(class_id_true, class_id_pred), 'int32')
