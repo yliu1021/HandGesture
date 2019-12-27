@@ -131,5 +131,7 @@ def multi_frame_model(single_frame_encoder, num_frames=None):
     s = x.shape[-1] * x.shape[-2] * x.shape[-3]
     x = Reshape(target_shape=(-1, s))(x)
 
+    x = LSTM(256, return_sequences=True, stateful=False)(x)
+
     x = Dense(NUM_CLASSES)(x)
     return Model(video_input, x, name='multi_frame_model')
