@@ -53,7 +53,7 @@ def main(should_prune=False):
     starting_epoch = 0
 
     single_frame_encoder = model.single_frame_model()
-    multi_frame_model = model.multi_frame_model(single_frame_encoder)
+    multi_frame_model = model.multi_frame_model(single_frame_encoder, num_frames=None)
     single_frame_encoder.summary()
     multi_frame_model.summary()
 
