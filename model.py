@@ -118,7 +118,7 @@ def multi_frame_model(single_frame_encoder, num_frames=None):
 
     encoded_output = time_distributed_frame_encoder(video_input)
 
-    diff_outputs = False
+    diff_outputs = True
     if diff_outputs:
         diffed_outputs = Lambda(tf_diff)(encoded_output)
         x = diffed_outputs
