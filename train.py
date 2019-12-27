@@ -15,11 +15,13 @@ from constants import *
 
 
 def temporal_crossentropy(y_true, y_pred):
-    avg_pred = tf.reduce_mean(y_pred, axis=1)
+    y_pred = y_pred[:, -5:]
+    avg_pred = tf.reduce_mean(y_pred[:, -5:], axis=1)
     return tf.nn.softmax_cross_entropy_with_logits(y_true, avg_pred)
 
 
 def temporal_accuracy(y_true, y_pred):
+    y_pred = y_pred[:, -5:]
     avg_pred = tf.reduce_mean(y_pred, axis=1)
 
     class_id_true = tf.argmax(y_true, axis=-1)
@@ -30,6 +32,7 @@ def temporal_accuracy(y_true, y_pred):
 
 
 def temporal_top_k_accuracy(y_true, y_pred):
+    y_pred = y_pred[:, -5:]
     avg_pred = tf.reduce_mean(y_pred, axis=1)
     return tf.keras.metrics.sparse_top_k_categorical_accuracy(tf.argmax(y_true, axis=-1), avg_pred, k=2)
 
