@@ -128,13 +128,22 @@ def multi_frame_model(single_frame_encoder, num_frames=None, stateful=False):
     else:
         x = encoded_output
 
-    x = ConvLSTM2D(filters=256, kernel_size=(3, 1), padding='valid', return_sequences=True, stateful=stateful)(x)
-    x = ConvLSTM2D(filters=256, kernel_size=(1, 3), padding='valid', return_sequences=True, stateful=stateful)(x)
+    b1 = Conv3D(filters=192, kernel_size=(3, 1, 1), padding='valid', activation='relu')(x)
+
+    b2 = Conv3D(filters=192, kernel_size=(3, 1, 1), padding='valid', activation='relu')(x)
+    b2 = Conv3D(filters=224, kernel_size=(1, 3, 1), padding='same', activation='relu')(b2)
+    b2 = Conv3D(filters=256, kernel_size=(1, 1, 3), padding='same', activation='relu')(b2)
+
+    res = Concatenate(axis=-1)([b1, b2])
+    res = Conv3D(filters=2048, kernel_size=1, padding='same')(res)
+    x = Lambda(lambda a: a[0] + 0.15*a[1])([x, res])
 
     s = x.shape[-1] * x.shape[-2] * x.shape[-3]
     x = Reshape(target_shape=(-1, s))(x)
 
-    x = LSTM(256, return_sequences=True, stateful=stateful)(x)
+    filter_sizes = [512, 256, 128]
+    for filter_size in filter_sizes:
+        x = SeparableConv1D(filter_size, kernel_size=3, activation='relu')(x)
 
     x = Dense(NUM_CLASSES)(x)
     return Model(video_input, x, name='multi_frame_model')
