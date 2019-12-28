@@ -10,6 +10,7 @@ from matplotlib import animation
 import data
 from constants import *
 import train
+import model
 
 
 def softmax(x):
@@ -25,15 +26,14 @@ def main():
     plt.xticks(rotation=90)
     plt.tight_layout()
 
-    model = keras_load_model(os.path.join('training', 'run1', 'multi_frame_model.hdf5'), custom_objects={
-        'temporal_crossentropy': train.temporal_crossentropy,
-        'temporal_accuracy': train.temporal_accuracy,
-        'temporal_top_k_accuracy': train.temporal_top_k_accuracy
-    })
+    single_frame_model = model.single_frame_model()
+    multi_frame_model = model.multi_frame_model(single_frame_model, num_frames=2, stateful=True)
+    multi_frame_model.load_weights(os.path.join('training', 'run3', 'multi_frame_model.01.hdf5'))
+
     cap = cv2.VideoCapture(0)
 
     image_size = (IMAGE_WIDTH, IMAGE_HEIGHT)
-    model_input = np.zeros((1, 6, IMAGE_HEIGHT, IMAGE_WIDTH, 3), dtype=np.float32)
+    model_input = np.zeros((1, 2, IMAGE_HEIGHT, IMAGE_WIDTH, 3), dtype=np.float32)
 
     def animate(i):
         ret, frame = cap.read()
@@ -44,7 +44,7 @@ def main():
         frame = cv2.resize(frame, image_size)
         model_input[0, :-1] = model_input[0, 1:]
         model_input[0, -1] = frame
-        pred = model.predict(model_input)
+        pred = multi_frame_model.predict(model_input)
         pred = softmax(pred[0, -1])
 
         for bar, p in zip(bars, pred):

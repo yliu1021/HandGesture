@@ -111,10 +111,13 @@ def single_frame_model():
     return Model(frame_input, x, name='single_frame_encoder')
 
 
-def multi_frame_model(single_frame_encoder, num_frames=None):
+def multi_frame_model(single_frame_encoder, num_frames=None, stateful=False):
     time_distributed_frame_encoder = TimeDistributed(single_frame_encoder)
 
-    video_input = Input(shape=(num_frames, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
+    if stateful:
+        video_input = Input(shape=(num_frames, IMAGE_HEIGHT, IMAGE_WIDTH, 3), batch_size=1)
+    else:
+        video_input = Input(shape=(num_frames, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
 
     encoded_output = time_distributed_frame_encoder(video_input)
 
@@ -125,13 +128,13 @@ def multi_frame_model(single_frame_encoder, num_frames=None):
     else:
         x = encoded_output
 
-    x = ConvLSTM2D(filters=256, kernel_size=(3, 1), padding='valid', return_sequences=True, stateful=False)(x)
-    x = ConvLSTM2D(filters=256, kernel_size=(1, 3), padding='valid', return_sequences=True, stateful=False)(x)
+    x = ConvLSTM2D(filters=256, kernel_size=(3, 1), padding='valid', return_sequences=True, stateful=stateful)(x)
+    x = ConvLSTM2D(filters=256, kernel_size=(1, 3), padding='valid', return_sequences=True, stateful=stateful)(x)
 
     s = x.shape[-1] * x.shape[-2] * x.shape[-3]
     x = Reshape(target_shape=(-1, s))(x)
 
-    x = LSTM(256, return_sequences=True, stateful=False)(x)
+    x = LSTM(256, return_sequences=True, stateful=stateful)(x)
 
     x = Dense(NUM_CLASSES)(x)
     return Model(video_input, x, name='multi_frame_model')
