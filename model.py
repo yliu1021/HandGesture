@@ -37,14 +37,16 @@ def blockA(x):
     res1 = Conv2D(filters=32, kernel_size=1, activation='relu', padding='same')(x)
 
     res2 = Conv2D(filters=32, kernel_size=1, activation='relu', padding='same')(x)
-    res2 = Conv2D(filters=32, kernel_size=3, activation='relu', padding='same')(res2)
+    res2 = SeparableConv2D(filters=32, kernel_size=3, activation='relu', padding='same')(res2)
 
     res3 = Conv2D(filters=32, kernel_size=1, activation='relu', padding='same')(x)
-    res3 = Conv2D(filters=48, kernel_size=3, activation='relu', padding='same')(res3)
-    res3 = Conv2D(filters=48, kernel_size=3, activation='relu', padding='same')(res3)
+    res3 = SeparableConv2D(filters=48, kernel_size=3, activation='relu', padding='same')(res3)
+    res3 = SeparableConv2D(filters=48, kernel_size=3, activation='relu', padding='same')(res3)
 
     res = Concatenate(axis=-1)([res1, res2, res3])
     res = Conv2D(filters=384, kernel_size=1, activation=None, padding='same')(res)
+    res = BatchNormalization(axis=-1)(res)
+
     x = Lambda(lambda a: a[0] + a[1]*0.15)([x, res])
     return x
 
@@ -53,11 +55,13 @@ def blockB(x):
     res1 = Conv2D(filters=192, kernel_size=1, activation='relu', padding='same')(x)
 
     res2 = Conv2D(filters=128, kernel_size=1, activation='relu', padding='same')(x)
-    res2 = Conv2D(filters=160, kernel_size=(7, 1), activation='relu', padding='same')(res2)
-    res2 = Conv2D(filters=192, kernel_size=(1, 7), activation='relu', padding='same')(res2)
+    res2 = SeparableConv2D(filters=160, kernel_size=(7, 1), activation='relu', padding='same')(res2)
+    res2 = SeparableConv2D(filters=192, kernel_size=(1, 7), activation='relu', padding='same')(res2)
 
     res = Concatenate(axis=-1)([res1, res2])
     res = Conv2D(filters=1152, kernel_size=1, activation=None, padding='same')(res)
+    res = BatchNormalization(axis=-1)(res)
+
     x = Lambda(lambda a: a[0] + a[1]*0.1)([x, res])
     return x
 
@@ -103,7 +107,7 @@ def single_frame_model():
 
     x = reductionA(x)
 
-    for i in range(4):
+    for i in range(5):
         x = blockB(x)
 
     x = reductionB(x)
@@ -130,11 +134,11 @@ def multi_frame_model(single_frame_encoder, num_frames=None, stateful=False):
 
     s = x.shape[-1] * x.shape[-2] * x.shape[-3]
     x = Reshape(target_shape=(-1, s))(x)
-    x = Dense(128)(x)
+    x = Dense(512)(x)
 
-    filter_sizes = [128, 128, 128]
+    filter_sizes = [512, 256, 128]
     for filter_size in filter_sizes:
-        x = SeparableConv1D(filter_size, kernel_size=3, activation='relu', padding='valid')(x)
+        x = Conv1D(filter_size, kernel_size=3, activation='relu', padding='valid')(x)
 
     x = Dense(NUM_CLASSES)(x)
     return Model(video_input, x, name='multi_frame_model')

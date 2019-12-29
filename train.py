@@ -15,7 +15,7 @@ from constants import *
 
 
 def temporal_avg(y_pred):
-    y_pred = y_pred[:, -5:]
+    # y_pred = y_pred[:, -5:]
     avg_pred = tf.reduce_mean(y_pred, axis=1)
     return avg_pred
 
