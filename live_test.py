@@ -32,7 +32,7 @@ def main():
     
     single_frame_model = model.single_frame_model()
     multi_frame_model = model.multi_frame_model(single_frame_model, num_frames=num_frames, stateful=True)
-    multi_frame_model.load_weights(os.path.join('training', 'run5', 'multi_frame_model.12.hdf5'))
+    multi_frame_model.load_weights(os.path.join('training', 'run5', 'multi_frame_model.24.hdf5'))
 
     cap = cv2.VideoCapture(0)
 
@@ -50,6 +50,7 @@ def main():
         
         start = time.time()
         frame = cv2.resize(frame, image_size)
+        frame = frame.astype(np.float32) / 255.0
         resize_time = time.time() - start
         
         start = time.time()
@@ -58,11 +59,12 @@ def main():
         input_shift_time = time.time() - start
         
         start = time.time()
-        pred = multi_frame_model.predict(model_input)
+        pred = multi_frame_model.predict(model_input)[0]
         predict_time = time.time() - start
         
         start = time.time()
-        pred = softmax(pred[0, -1])
+        pred = np.max(pred, axis=0)
+        pred = softmax(pred)
         softmax_time = time.time() - start
 
         for bar, p in zip(bars, pred):
@@ -84,6 +86,10 @@ def main():
                 read_time + resize_time + input_shift_time + predict_time + softmax_time
             )
         )
+        if pred.max() > 0.5:
+            predictions = pred.argsort()
+            print(data.labels[predictions[-1]])
+            print(data.labels[predictions[-2]])
         return bars
 
     animation.FuncAnimation(fig, animate, frames=None, interval=1, blit=True)
