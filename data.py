@@ -10,6 +10,8 @@ import numpy as np
 from constants import *
 
 dataset_dir = '/home/yuhan/Datasets/jester/'
+if not os.path.isdir(dataset_dir):
+    dataset_dir = '/Users/yuhanliu/Offline/Datasets/20bn_Jester/'
 video_dir = os.path.join(dataset_dir, '20bn-jester-v1')
 video_cache_dir = os.path.join(dataset_dir, 'cached')
 labels_filename = os.path.join(dataset_dir, 'jester-v1-labels.csv')
