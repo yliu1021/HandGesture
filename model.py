@@ -12,7 +12,7 @@ def tf_diff(x):
 
 
 def stem(x):
-    reg = L1L2(l1=0.001, l2=0.001)
+    reg = L1L2(l1=0.0001, l2=0.0001)
 
     x = Conv2D(filters=32, kernel_size=3, strides=2, activation='relu', padding='same', kernel_regularizer=reg)(x)
     x = Conv2D(filters=32, kernel_size=3, activation='relu', padding='same', kernel_regularizer=reg)(x)
@@ -37,7 +37,7 @@ def stem(x):
 
 
 def blockA(x):
-    reg = L1L2(l1=0., l2=0.001)
+    reg = L1L2(l1=0., l2=0.0001)
 
     res1 = Conv2D(filters=32, kernel_size=1, activation='relu', padding='same', kernel_regularizer=reg)(x)
 
@@ -57,7 +57,7 @@ def blockA(x):
 
 
 def blockB(x):
-    reg = L1L2(l1=0., l2=0.001)
+    reg = L1L2(l1=0., l2=0.0001)
 
     res1 = Conv2D(filters=192, kernel_size=1, activation='relu', padding='same', kernel_regularizer=reg)(x)
 
@@ -76,7 +76,7 @@ def blockB(x):
 
 
 def reductionA(x):
-    reg = L1L2(l1=0., l2=0.001)
+    reg = L1L2(l1=0., l2=0.0001)
 
     b1 = MaxPooling2D(pool_size=3, strides=2, padding='same')(x)
 
@@ -91,7 +91,7 @@ def reductionA(x):
 
 
 def reductionB(x):
-    reg = L1L2(l1=0., l2=0.001)
+    reg = L1L2(l1=0., l2=0.0001)
 
     b1 = MaxPooling2D(pool_size=3, strides=2, padding='same')(x)
 
@@ -115,13 +115,13 @@ def single_frame_model():
 
     x = stem(frame_input)
 
-    for i in range(3):
+    for i in range(4):
         x = blockA(x)
         x = Dropout(0.2)(x)
 
     x = reductionA(x)
 
-    for i in range(4):
+    for i in range(5):
         x = blockB(x)
         x = Dropout(0.2)(x)
 
@@ -130,32 +130,27 @@ def single_frame_model():
     return Model(frame_input, x, name='single_frame_encoder')
 
 
-def multi_frame_model(single_frame_encoder, num_frames=None, stateful=False):
-    time_distributed_frame_encoder = TimeDistributed(single_frame_encoder)
+def multi_frame_model(single_frame_encoder, num_frames=None):
+    video_input = Input(shape=(num_frames, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
 
-    if stateful:
-        video_input = Input(shape=(num_frames, IMAGE_HEIGHT, IMAGE_WIDTH, 3), batch_size=1)
-    else:
-        video_input = Input(shape=(num_frames, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
+    encoded_output = TimeDistributed(single_frame_encoder)(video_input)
 
-    encoded_output = time_distributed_frame_encoder(video_input)
+    diffed_outputs = Lambda(lambda x: x[:, 1:] - x[:, :-1])(encoded_output)
+    encoded_output = Lambda(lambda x: x[:, 1:])(encoded_output)
+    x = Concatenate()([encoded_output, diffed_outputs])
 
-    diff_outputs = False
-    if diff_outputs:
-        diffed_outputs = Lambda(tf_diff)(encoded_output)
-        x = diffed_outputs
-    else:
-        x = encoded_output
+    x = TimeDistributed(Conv2D(filters=512, kernel_size=3, activation='relu', padding='same',
+                        kernel_regularizer=l1_l2(l1=0.0001, l2=0.0001)))(x)
 
     s = x.shape[-1] * x.shape[-2] * x.shape[-3]
     x = Reshape(target_shape=(-1, s))(x)
-    x = Dense(1024, kernel_regularizer=l1_l2(l1=0.001, l2=0.001))(x)
+    x = Dense(1024, kernel_regularizer=l1_l2(l1=0.0001, l2=0.0001))(x)
     x = BatchNormalization(axis=-1)(x)
 
     filter_sizes = [1024, 512, 256, 128]
     for filter_size in filter_sizes:
         x = Conv1D(filter_size, kernel_size=3, activation='relu', padding='valid',
-                   kernel_regularizer=l1_l2(l1=0.001, l2=0.001))(x)
+                   kernel_regularizer=l1_l2(l1=0, l2=0.0001))(x)
 
-    x = Dense(NUM_CLASSES, kernel_regularizer=l1_l2(l1=0., l2=0.001))(x)
+    x = Dense(NUM_CLASSES, kernel_regularizer=l1_l2(l1=0., l2=0.0001))(x)
     return Model(video_input, x, name='multi_frame_model')
