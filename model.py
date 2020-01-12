@@ -115,13 +115,13 @@ def single_frame_model():
 
     for i in range(4):
         x = blockA(x)
-        x = Dropout(0.2)(x)
+        x = Dropout(0.1)(x)
 
     x = reductionA(x)
 
     for i in range(5):
         x = blockB(x)
-        x = Dropout(0.2)(x)
+        x = Dropout(0.1)(x)
 
     x = reductionB(x)
 
