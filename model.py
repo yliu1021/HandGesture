@@ -137,7 +137,7 @@ def multi_frame_model(single_frame_encoder, num_frames=None):
     encoded_output = Lambda(lambda x: x[:, 1:])(encoded_output)
     x = Concatenate()([encoded_output, diffed_outputs])
 
-    x = TimeDistributed(Conv2D(filters=512, kernel_size=3, activation='relu', padding='same',
+    x = TimeDistributed(Conv2D(filters=1024, kernel_size=1, activation='relu', padding='same',
                         kernel_regularizer=l1_l2(l1=0.0001, l2=0.0001)))(x)
 
     s = x.shape[-1] * x.shape[-2] * x.shape[-3]
