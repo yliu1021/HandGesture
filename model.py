@@ -50,7 +50,6 @@ def blockA(x):
 
     res = Concatenate(axis=-1)([res1, res2, res3])
     res = Conv2D(filters=384, kernel_size=1, activation=None, padding='same', kernel_regularizer=reg)(res)
-    res = BatchNormalization(axis=-1)(res)
 
     x = Lambda(lambda a: a[0] + a[1]*0.15)([x, res])
     return x
@@ -69,7 +68,6 @@ def blockB(x):
 
     res = Concatenate(axis=-1)([res1, res2])
     res = Conv2D(filters=1152, kernel_size=1, activation=None, padding='same', kernel_regularizer=reg)(res)
-    res = BatchNormalization(axis=-1)(res)
 
     x = Lambda(lambda a: a[0] + a[1]*0.1)([x, res])
     return x
@@ -145,7 +143,6 @@ def multi_frame_model(single_frame_encoder, num_frames=None):
     s = x.shape[-1] * x.shape[-2] * x.shape[-3]
     x = Reshape(target_shape=(-1, s))(x)
     x = Dense(1024, kernel_regularizer=l1_l2(l1=0.0001, l2=0.0001))(x)
-    x = BatchNormalization(axis=-1)(x)
 
     filter_sizes = [1024, 512, 256, 128]
     for filter_size in filter_sizes:
