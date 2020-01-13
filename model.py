@@ -135,12 +135,12 @@ def multi_frame_model(single_frame_encoder, num_frames=None):
     encoded_output = Lambda(lambda x: x[:, 1:])(encoded_output)
     x = Concatenate()([encoded_output, diffed_outputs])
 
-    x = TimeDistributed(Conv2D(filters=4096, kernel_size=3, activation='relu', padding='same',
-                        kernel_regularizer=l1_l2(l1=0.00001, l2=0.00001)))(x)
+    x = Conv3D(filters=4096, kernel_size=3, dilation_rate=2, activation='relu', padding='valid',
+               kernel_regularizer=l1_l2(l1=0.00001, l2=0.00001)))(x)
 
     s = x.shape[-1] * x.shape[-2] * x.shape[-3]
     x = Reshape(target_shape=(-1, s))(x)
-    x = Dense(2048, kernel_regularizer=l1_l2(l1=0.00001, l2=0.00001))(x)
+    x = Dense(1028, kernel_regularizer=l1_l2(l1=0.00001, l2=0.00001))(x)
 
     filter_sizes = [1024, 1024, 256, 128]
     for filter_size in filter_sizes:
