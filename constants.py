@@ -13,4 +13,4 @@ PRUNE_FREQ = 2
 
 SINGLE_FRAME_ENCODER_DIMS = 512  # output dimension of single frame encoder
 NUM_FRAMES = 20  # number of frames
-MIN_FPS = 10  # recommended to be less than or equal to 12 because the dataset has a max fps of 12
+MIN_FPS = 8  # recommended to be less than or equal to 12 because the dataset has a max fps of 12
