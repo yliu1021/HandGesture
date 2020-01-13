@@ -31,7 +31,7 @@ def main():
     frame_time = 1/MIN_FPS * 1000
     
     single_frame_model = model.single_frame_model()
-    multi_frame_model = model.multi_frame_model(single_frame_model, num_frames=num_frames, stateful=True)
+    multi_frame_model = model.multi_frame_model(single_frame_model, num_frames=num_frames)
     multi_frame_model.load_weights(os.path.join('training', 'run5', 'multi_frame_model.35.hdf5'))
 
     cap = cv2.VideoCapture(0)

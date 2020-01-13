@@ -1,3 +1,6 @@
+import time
+
+import numpy as np
 import tensorflow as tf
 from tensorflow.keras import Model, Input, Sequential
 from tensorflow.keras.layers import *
@@ -115,15 +118,10 @@ def single_frame_model():
     return Model(frame_input, x, name='single_frame_encoder')
 
 
-def multi_frame_model(single_frame_encoder, num_frames=None, stateful=False):
-    time_distributed_frame_encoder = TimeDistributed(single_frame_encoder)
+def multi_frame_model(single_frame_encoder, num_frames=None):
+    video_input = Input(shape=(num_frames, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
 
-    if stateful:
-        video_input = Input(shape=(num_frames, IMAGE_HEIGHT, IMAGE_WIDTH, 3), batch_size=1)
-    else:
-        video_input = Input(shape=(num_frames, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
-
-    encoded_output = time_distributed_frame_encoder(video_input)
+    encoded_output = TimeDistributed(single_frame_encoder)(video_input)
 
     diff_outputs = True
     if diff_outputs:
@@ -142,3 +140,23 @@ def multi_frame_model(single_frame_encoder, num_frames=None, stateful=False):
 
     x = Dense(NUM_CLASSES)(x)
     return Model(video_input, x, name='multi_frame_model')
+
+
+if __name__ == '__main__':
+    single_frame_encoder = single_frame_model()
+    multi_frame_encoder = multi_frame_model(single_frame_encoder)
+    single_frame_encoder.summary()
+    multi_frame_encoder.summary()
+
+    FRAMES = 10
+    start = time.time()
+    for i in range(FRAMES):
+        print(multi_frame_encoder.predict(np.zeros(shape=(1, 8, 108, 192, 3))).shape)
+    end = time.time()
+    print((end - start)/FRAMES)
+    
+    start = time.time()
+    for i in range(FRAMES):
+        print(single_frame_encoder.predict(np.zeros(shape=(1, 108, 192, 3))).shape)
+    end = time.time()
+    print((end - start)/FRAMES)
