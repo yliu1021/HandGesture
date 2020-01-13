@@ -7,6 +7,7 @@ import tensorflow as tf
 from tensorflow.keras.optimizers import *
 from tensorflow.keras.callbacks import *
 from tensorflow_model_optimization.python.core.sparsity.keras import prune, pruning_schedule, pruning_callbacks
+from adabound import AdaBound
 import matplotlib.pyplot as plt
 
 import model
@@ -109,7 +110,7 @@ def main(should_prune=False):
         }
         multi_frame_model = prune.prune_low_magnitude(multi_frame_model, **pruning_params)
 
-    optimizer = Adam(LEARNING_RATE)
+    optimizer = SGD(LEARNING_RATE, momentum=0.9, nesterov=True)
     multi_frame_model.compile(
         optimizer=optimizer,
         loss=temporal_crossentropy,
