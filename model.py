@@ -1,3 +1,7 @@
+import time
+
+import numpy as np
+
 import tensorflow as tf
 from tensorflow.keras import Model, Input, Sequential
 from tensorflow.keras.layers import *
@@ -12,7 +16,7 @@ def tf_diff(x):
 
 
 def stem(x):
-    reg = L1L2(l1=0.00001, l2=0.00001)
+    reg = L1L2(l1=0, l2=0.00001)
 
     x = Conv2D(filters=32, kernel_size=3, strides=2, activation='relu', padding='same', kernel_regularizer=reg)(x)
     x = Conv2D(filters=32, kernel_size=3, activation='relu', padding='same', kernel_regularizer=reg)(x)
@@ -113,15 +117,13 @@ def single_frame_model():
 
     x = stem(frame_input)
 
-    for i in range(4):
+    for i in range(5):
         x = blockA(x)
 
     x = reductionA(x)
 
     for i in range(5):
         x = blockB(x)
-
-    # x = reductionB(x)
 
     return Model(frame_input, x, name='single_frame_encoder')
 
@@ -133,19 +135,34 @@ def multi_frame_model(single_frame_encoder, num_frames=None):
 
     diffed_outputs = Lambda(lambda x: x[:, 1:] - x[:, :-1])(encoded_output)
     encoded_output = Lambda(lambda x: x[:, 1:])(encoded_output)
-    x = Concatenate()([encoded_output, diffed_outputs])
+    # x = Concatenate()([encoded_output, diffed_outputs])
+    x = encoded_output
 
-    x = Conv3D(filters=4096, kernel_size=3, dilation_rate=2, activation='relu', padding='valid',
-               kernel_regularizer=l1_l2(l1=0.00001, l2=0.00001))(x)
+    x = Conv3D(filters=1024, kernel_size=(2, 2, 3), strides=2, activation='relu', padding='valid',
+               kernel_regularizer=l1_l2(l1=0, l2=0.00001))(x)
+    print(x.shape)
 
     s = x.shape[-1] * x.shape[-2] * x.shape[-3]
     x = Reshape(target_shape=(-1, s))(x)
-    x = Dense(1028, kernel_regularizer=l1_l2(l1=0.00001, l2=0.00001))(x)
+    x = Dense(1024, kernel_regularizer=l1_l2(l1=0, l2=0.00001))(x)
 
-    filter_sizes = [1024, 1024, 256, 128]
+    filter_sizes = [1024, 1024]
     for filter_size in filter_sizes:
         x = Conv1D(filter_size, kernel_size=3, activation='relu', padding='valid',
                    kernel_regularizer=l1_l2(l1=0, l2=0.00001))(x)
 
     x = Dense(NUM_CLASSES, kernel_regularizer=l1_l2(l1=0., l2=0.00001))(x)
     return Model(video_input, x, name='multi_frame_model')
+
+
+if __name__ == '__main__':
+    single_frame_encoder = single_frame_model()
+    multi_frame_encoder = multi_frame_model(single_frame_encoder)
+    single_frame_encoder.summary()
+    multi_frame_encoder.summary()
+
+    start = time.time()
+    for i in range(10):
+        print(multi_frame_encoder.predict(np.zeros(shape=(1, 11, 108, 192, 3))))
+    end = time.time()
+    print(end - start)
