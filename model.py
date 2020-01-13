@@ -136,7 +136,7 @@ def multi_frame_model(single_frame_encoder, num_frames=None):
     x = Concatenate()([encoded_output, diffed_outputs])
 
     x = Conv3D(filters=4096, kernel_size=3, dilation_rate=2, activation='relu', padding='valid',
-               kernel_regularizer=l1_l2(l1=0.00001, l2=0.00001)))(x)
+               kernel_regularizer=l1_l2(l1=0.00001, l2=0.00001))(x)
 
     s = x.shape[-1] * x.shape[-2] * x.shape[-3]
     x = Reshape(target_shape=(-1, s))(x)
