@@ -118,8 +118,8 @@ def main(should_prune=False):
     )
 
     callbacks = [
-        ReduceLROnPlateau(monitor='val_temporal_accuracy', factor=0.1, patience=10, mode='max'),
-        EarlyStopping(monitor='val_temporal_accuracy', patience=11, mode='max'),
+        ReduceLROnPlateau(monitor='val_temporal_accuracy', factor=0.1, patience=5, mode='max'),
+        EarlyStopping(monitor='val_temporal_accuracy', patience=6, mode='max'),
         ModelCheckpoint(filepath=os.path.join(training_dir, 'multi_frame_model.{epoch:02d}.hdf5')),
         TensorBoard(log_dir=tensorboard_dir, histogram_freq=2, write_images=True)
     ]
