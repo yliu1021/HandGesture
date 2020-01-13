@@ -7,7 +7,6 @@ import tensorflow as tf
 from tensorflow.keras.optimizers import *
 from tensorflow.keras.callbacks import *
 from tensorflow_model_optimization.python.core.sparsity.keras import prune, pruning_schedule, pruning_callbacks
-from adabound import AdaBound
 import matplotlib.pyplot as plt
 
 import model
