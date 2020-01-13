@@ -110,7 +110,7 @@ def main(should_prune=False):
         }
         multi_frame_model = prune.prune_low_magnitude(multi_frame_model, **pruning_params)
 
-    optimizer = SGD(LEARNING_RATE, nesterov=True)
+    optimizer = SGD(LEARNING_RATE, momentum=0.9, nesterov=True)
     multi_frame_model.compile(
         optimizer=optimizer,
         loss=temporal_crossentropy,
