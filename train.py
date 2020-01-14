@@ -52,22 +52,21 @@ def main(should_prune=False):
     os.makedirs(training_dir, exist_ok=True)
     os.makedirs(tensorboard_dir, exist_ok=True)
     os.makedirs(pruning_dir, exist_ok=True)
-    single_frame_encoder_model_save_dir = os.path.join(training_dir, 'single_frame_encoder.hdf5')
-    multi_frame_encoder_model_save_dir = os.path.join(training_dir, 'multi_frame_model.hdf5')
-    multi_frame_encoder_weight_model_save_dir = os.path.join(training_dir, 'multi_frame_model_weights.hdf5')
+    single_frame_encoder_model_save_dir = os.path.join(training_dir, 'single_frame_encoder.h5')
+    multi_frame_encoder_model_save_dir = os.path.join(training_dir, 'multi_frame_model.h5')
+    full_model_save_dir = os.path.join(training_dir, 'full_model.h5')
     starting_epoch = 0
 
-    single_frame_encoder = model.single_frame_model()
-    multi_frame_model = model.multi_frame_model(single_frame_encoder, num_frames=None)
+    single_frame_encoder, multi_frame_model, full_model = model.full_model(num_frames=None)
     single_frame_encoder.summary()
     multi_frame_model.summary()
 
-    previous_saves = sorted(glob.glob(os.path.join(training_dir, 'multi_frame_model.??.hdf5')))
+    previous_saves = sorted(glob.glob(os.path.join(training_dir, 'full_model.??.h5')))
     if len(previous_saves) != 0:
         last_save = previous_saves[-1]
         starting_epoch = int(last_save.split('.')[-2])
         print(f'Restoring weights from last run: {last_save}')
-        multi_frame_model.load_weights(last_save)
+        full_model.load_weights(last_save)
 
     train_data_generator = data.train_dataset.data_generator(
         num_frames=NUM_FRAMES,
@@ -83,7 +82,7 @@ def main(should_prune=False):
     sample_batch = next(train_data_generator)
     print(f'Testing speed on batch size {BATCH_SIZE}')
     start = time.time()
-    multi_frame_model.predict_on_batch(sample_batch)
+    full_model.predict_on_batch(sample_batch)
     end = time.time()
     print(f'Predicted in {end - start}, {(end - start) / BATCH_SIZE} per sample')
 
@@ -108,19 +107,19 @@ def main(should_prune=False):
                                                                  end_step=PRUNING_END_EPOCH,
                                                                  frequency=PRUNE_FREQ)
         }
-        multi_frame_model = prune.prune_low_magnitude(multi_frame_model, **pruning_params)
+        full_model = prune.prune_low_magnitude(full_model, **pruning_params)
 
     optimizer = SGD(LEARNING_RATE, momentum=0.9, nesterov=True, clipnorm=1.0)
-    multi_frame_model.compile(
+    full_model.compile(
         optimizer=optimizer,
         loss=temporal_crossentropy,
         metrics=[temporal_accuracy, temporal_top_k_accuracy]
     )
 
     callbacks = [
-        ReduceLROnPlateau(monitor='val_temporal_accuracy', factor=0.1, patience=5, mode='max'),
-        EarlyStopping(monitor='val_temporal_accuracy', patience=6, mode='max'),
-        ModelCheckpoint(filepath=os.path.join(training_dir, 'multi_frame_model.{epoch:02d}.hdf5')),
+        ReduceLROnPlateau(monitor='val_temporal_accuracy', factor=0.1, patience=10, mode='max'),
+        EarlyStopping(monitor='val_temporal_accuracy', patience=15, mode='max'),
+        ModelCheckpoint(filepath=os.path.join(training_dir, 'full_model.{epoch:02d}.h5')),
         TensorBoard(log_dir=tensorboard_dir, histogram_freq=2, write_images=True)
     ]
 
@@ -130,7 +129,7 @@ def main(should_prune=False):
             pruning_callbacks.PruningSummaries(log_dir=pruning_dir)
         ])
 
-    hist = multi_frame_model.fit(
+    hist = full_model.fit(
         train_data_generator,
         steps_per_epoch=data.train_dataset.num_samples() // BATCH_SIZE,
         epochs=EPOCHS,
@@ -145,11 +144,11 @@ def main(should_prune=False):
     )
 
     if should_prune:
-        multi_frame_model = prune.strip_pruning(multi_frame_model)
+        full_model = prune.strip_pruning(full_model)
 
     single_frame_encoder.save(single_frame_encoder_model_save_dir)
     multi_frame_model.save(multi_frame_encoder_model_save_dir)
-    multi_frame_model.save(multi_frame_encoder_weight_model_save_dir, include_optimizer=False)
+    full_model.save(full_model_save_dir)
 
     # Plot training & validation accuracy values
     plt.plot(hist.history['temporal_accuracy'])

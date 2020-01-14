@@ -118,40 +118,40 @@ def single_frame_model():
     return Model(frame_input, x, name='single_frame_encoder')
 
 
-def multi_frame_model(single_frame_encoder, num_frames=None):
-    video_input = Input(shape=(num_frames, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
+def multi_frame_model(num_frames=None):
+    encoded_frame_input = Input(shape=(num_frames, 4, 6, 2048))
 
-    encoded_output = TimeDistributed(single_frame_encoder)(video_input)
-
-    diff_outputs = True
-    if diff_outputs:
-        diffed_outputs = Lambda(tf_diff)(encoded_output)
-        x = diffed_outputs
-    else:
-        x = encoded_output
-
-    s = x.shape[-1] * x.shape[-2] * x.shape[-3]
-    x = Reshape(target_shape=(-1, s))(x)
-    x = Dense(512)(x)
+    x = TimeDistributed(Flatten())(encoded_frame_input)
+    x = TimeDistributed(Dense(512))(x)
 
     filter_sizes = [512, 256, 128]
     for filter_size in filter_sizes:
         x = Conv1D(filter_size, kernel_size=3, activation='relu', padding='valid')(x)
 
     x = Dense(NUM_CLASSES)(x)
-    return Model(video_input, x, name='multi_frame_model')
+    return Model(encoded_frame_input, x, name='multi_frame_model')
+
+
+def full_model(num_frames=None):
+    single_frame_encoder = single_frame_model()
+    multi_frame_encoder = multi_frame_model()
+    
+    video_input = Input(shape=(num_frames, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
+    frame_encoded = TimeDistributed(single_frame_encoder)(video_input)
+    prediction = multi_frame_encoder(frame_encoded)
+    
+    return single_frame_encoder, multi_frame_encoder, Model(video_input, prediction, name='full_model')
 
 
 if __name__ == '__main__':
-    single_frame_encoder = single_frame_model()
-    multi_frame_encoder = multi_frame_model(single_frame_encoder)
+    single_frame_encoder, multi_frame_encoder, model = full_model(num_frames=8)
     single_frame_encoder.summary()
     multi_frame_encoder.summary()
 
     FRAMES = 10
     start = time.time()
     for i in range(FRAMES):
-        print(multi_frame_encoder.predict(np.zeros(shape=(1, 8, 108, 192, 3))).shape)
+        print(model.predict(np.zeros(shape=(1, 8, 108, 192, 3))).shape)
     end = time.time()
     print((end - start)/FRAMES)
     
