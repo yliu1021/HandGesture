@@ -1,4 +1,5 @@
 import numpy as np
+import tensorflow as tf
 from tensorflow.keras import backend as K
 
 
@@ -52,7 +53,7 @@ def cosine_decay_with_warmup(global_step,
     return np.where(global_step > total_steps, 0.0, learning_rate)
 
 
-class WarmUpCosineDecayScheduler(tensorflow.keras.callbacks.Callback):
+class WarmUpCosineDecayScheduler(tf.keras.callbacks.Callback):
     """Cosine decay with warmup learning rate scheduler
     """
 
