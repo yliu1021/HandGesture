@@ -9,6 +9,7 @@ from tensorflow.keras.callbacks import *
 from tensorflow_model_optimization.python.core.sparsity.keras import prune, pruning_schedule, pruning_callbacks
 import matplotlib.pyplot as plt
 
+from cosine_warmup_lr import WarmUpCosineDecayScheduler
 import model
 import data
 from constants import *
@@ -109,18 +110,21 @@ def main(should_prune=False):
         }
         full_model = prune.prune_low_magnitude(full_model, **pruning_params)
 
-    optimizer = RMSprop(LEARNING_RATE, decay=0.9, momentum=0.9, epsilon=1.0)
+    optimizer = RMSprop(LEARNING_RATE, decay=0.9, momentum=0.9)
     full_model.compile(
         optimizer=optimizer,
         loss=temporal_crossentropy,
         metrics=[temporal_accuracy, temporal_top_k_accuracy]
     )
 
+    steps_per_epoch = data.train_dataset.num_samples() // BATCH_SIZE
     callbacks = [
         ReduceLROnPlateau(monitor='val_temporal_accuracy', factor=0.1, patience=10, mode='max'),
         EarlyStopping(monitor='val_temporal_accuracy', patience=15, mode='max'),
         ModelCheckpoint(filepath=os.path.join(training_dir, 'full_model.{epoch:02d}.h5')),
-        TensorBoard(log_dir=tensorboard_dir, histogram_freq=2, write_images=True)
+        TensorBoard(log_dir=tensorboard_dir, histogram_freq=2, write_images=True),
+        WarmUpCosineDecayScheduler(LEARNING_RATE, total_steps=steps_per_epoch, warmup_learning_rate=0.0001,
+                                   warmup_steps=100, hold_base_rate_steps=10)
     ]
 
     if should_prune:
@@ -131,7 +135,7 @@ def main(should_prune=False):
 
     hist = full_model.fit(
         train_data_generator,
-        steps_per_epoch=data.train_dataset.num_samples() // BATCH_SIZE,
+        steps_per_epoch=steps_per_epoch,
         epochs=EPOCHS,
         callbacks=callbacks,
         validation_data=validation_data_generator,
