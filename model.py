@@ -124,6 +124,9 @@ def single_frame_model():
 def multi_frame_model(num_frames=None):
     encoded_frame_input = Input(shape=(num_frames, 1024))
 
+    x_diff = Lambda(tf_diff)(encoded_frame_input)
+    x_offset = Lambda(lambda x: x[: 1:])(encoded_frame_input)
+    x = Concatenate(axis=-1)([x_diff, x_offset])
     x = SeparableConv1D(1024, kernel_size=2, depth_multiplier=2,
                         activation='relu', padding='valid')(encoded_frame_input)
     filter_sizes = [1024, 1024, 1024]
