@@ -124,9 +124,7 @@ def single_frame_model():
 def multi_frame_model(num_frames=None):
     encoded_frame_input = Input(shape=(num_frames, 1024))
 
-    x_diff = Lambda(tf_diff)(encoded_frame_input)
-    x_offset = Lambda(lambda x: x[: 1:])(encoded_frame_input)
-    x = Concatenate(axis=-1)([x_diff, x_offset])
+    x = Lambda(tf_diff)(encoded_frame_input)
     x = SeparableConv1D(1024, kernel_size=2, depth_multiplier=2,
                         activation='relu', padding='valid')(x)
     filter_sizes = [1024, 1024, 1024]
@@ -149,14 +147,14 @@ def full_model(num_frames=None):
 
 
 if __name__ == '__main__':
-    single_frame_encoder, multi_frame_encoder, model = full_model(num_frames=8)
+    single_frame_encoder, multi_frame_encoder, model = full_model(num_frames=9)
     single_frame_encoder.summary()
     multi_frame_encoder.summary()
 
     FRAMES = 10
     start = time.time()
     for i in range(FRAMES):
-        print(model.predict(np.zeros(shape=(1, 8, 108, 192, 3))).shape)
+        print(model.predict(np.zeros(shape=(1, 9, 108, 192, 3))).shape)
     end = time.time()
     print((end - start)/FRAMES)
     
