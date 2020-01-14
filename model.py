@@ -115,8 +115,6 @@ def single_frame_model():
 
     x = Flatten()(x)
     x = Dense(1024, activation='relu')(x)
-    x = Dense(1024, activation='relu')(x)
-    x = Dense(1024, activation='relu')(x)
 
     return Model(frame_input, x, name='single_frame_encoder')
 
