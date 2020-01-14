@@ -113,17 +113,16 @@ def single_frame_model():
 
     x = reductionB(x)
 
-    x = Flatten()(x)
-    x = Dense(1024, activation='relu')(x)
-
     return Model(frame_input, x, name='single_frame_encoder')
 
 
 def multi_frame_model(num_frames=None):
-    encoded_frame_input = Input(shape=(num_frames, 1024))
+    encoded_frame_input = Input(shape=(num_frames, 4, 6, 2048))
 
+    x = Lambda(tf_diff)(encoded_frame_input)
+    x = TimeDistributed(Flatten())(x)
     x = SeparableConv1D(1024, kernel_size=2, depth_multiplier=2,
-                        activation='relu', padding='valid')(encoded_frame_input)
+                        activation='relu', padding='valid')(x)
     filter_sizes = [1024, 1024, 1024]
     for filter_size in filter_sizes:
         x = SeparableConv1D(filter_size, kernel_size=3, activation='relu', padding='valid')(x)
