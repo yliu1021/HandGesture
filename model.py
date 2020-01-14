@@ -120,6 +120,9 @@ def multi_frame_model(num_frames=None):
     encoded_frame_input = Input(shape=(num_frames, 4, 6, 2048))
 
     x = TimeDistributed(Dense(512, activation='relu'))(encoded_frame_input)
+    x_diff = Lambda(lambda x: x[:, 1:] - x[:, :-1])(x)
+    x_offset = Lambda(lambda x: x[:, 1:])(x)
+    x = Concatenate(axis=-1)([x_diff, x_offset])
     x = TimeDistributed(Flatten())(x)
     x = TimeDistributed(Dense(1024, activation='relu'))(x)
 
