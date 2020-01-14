@@ -1,3 +1,4 @@
+import sys
 import os
 import time
 
@@ -19,7 +20,34 @@ def softmax(x):
     return e_x / e_x.sum()
 
 
-def main():
+def single_frame(model_loc):
+    single_frame_model = model.single_frame_model()
+    single_frame_model.load_weights(model_loc, by_name=True)
+    cap = cv2.VideoCapture(0)
+    image_size = (IMAGE_WIDTH, IMAGE_HEIGHT)
+    while True:
+        ret, frame = cap.read()
+        frame = cv2.resize(frame, image_size)
+        frame = frame.astype(np.float32) / 255.0
+        pred = single_frame_model.predict(frame[None, ...])[0]
+        
+        encoded_frames = list()
+        for i in range(40, 45):
+            f = pred[..., i]
+            encoded_frames.append(f)
+        
+        encoded_frames = np.array(encoded_frames)
+        encoded_frames -= encoded_frames.min()
+        encoded_frames /= encoded_frames.max()
+        
+        for i, f in enumerate(encoded_frames):
+            cv2.imshow(f'frame_{i}', f)
+
+        if cv2.waitKey(1) == ord('q'):
+            break
+        
+
+def main(model_loc):
     fig, ax = plt.subplots()
     ax.set_ylim(0, 1)
     ax.figure.set_size_inches(10, 10)
@@ -32,7 +60,7 @@ def main():
     
     single_frame_model = model.single_frame_model()
     multi_frame_model = model.multi_frame_model(single_frame_model, num_frames=num_frames)
-    multi_frame_model.load_weights(os.path.join('training', 'run5', 'multi_frame_model.35.hdf5'))
+    multi_frame_model.load_weights(model_loc)
 
     cap = cv2.VideoCapture(0)
 
@@ -97,4 +125,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    if 'single' in sys.argv:
+        single_frame(sys.argv[1])
+    else:
+        main(sys.argv[1])
