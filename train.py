@@ -61,6 +61,7 @@ def main(should_prune=False):
     single_frame_encoder.summary()
     multi_frame_model.summary()
 
+    single_frame_encoder.load_weights('./training/run7/multi_frame_model_weights.hdf5', by_name=True)
     previous_saves = sorted(glob.glob(os.path.join(training_dir, 'full_model.??.h5')))
     if len(previous_saves) != 0:
         last_save = previous_saves[-1]

@@ -119,8 +119,9 @@ def single_frame_model():
 def multi_frame_model(num_frames=None):
     encoded_frame_input = Input(shape=(num_frames, 4, 6, 2048))
 
-    x = TimeDistributed(Flatten())(encoded_frame_input)
     x = TimeDistributed(Dense(512, activation='relu'))(x)
+    x = TimeDistributed(Flatten())(encoded_frame_input)
+    x = TimeDistributed(Dense(1024, activation='relu'))(x)
 
     filter_sizes = [512, 256, 128]
     for filter_size in filter_sizes:
