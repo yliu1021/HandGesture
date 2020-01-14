@@ -121,8 +121,7 @@ def multi_frame_model(num_frames=None):
 
     x = Lambda(tf_diff)(encoded_frame_input)
     x = TimeDistributed(Flatten())(x)
-    x = SeparableConv1D(1024, kernel_size=2, depth_multiplier=2,
-                        activation='relu', padding='valid')(x)
+    x = Dense(1024)(x)
     filter_sizes = [1024, 1024, 1024]
     for filter_size in filter_sizes:
         x = SeparableConv1D(filter_size, kernel_size=3, activation='relu', padding='valid')(x)
