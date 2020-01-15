@@ -82,7 +82,7 @@ class DataSet:
         ind = labels.index(label)
         new_label = np.zeros(len(labels), dtype='float32')
         new_label[ind] = 1.0
-        eps = 0.1
+        eps = 0
         new_label = (1 - eps)*new_label + eps/len(labels)
         return new_label
 

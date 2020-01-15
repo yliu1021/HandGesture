@@ -17,6 +17,7 @@ def stem(x):
     x = Conv2D(filters=32, kernel_size=3, strides=2, activation='relu', padding='same')(x)
     x = Conv2D(filters=32, kernel_size=3, activation='relu', padding='same')(x)
     x = Conv2D(filters=64, kernel_size=3, activation='relu', padding='same')(x)
+    x = SpatialDropout2D(0.25)(x)
 
     b1 = MaxPooling2D(pool_size=(3, 3), strides=2, padding='same')(x)
     b2 = Conv2D(filters=32, kernel_size=3, strides=2, activation='relu', padding='same')(x)
@@ -111,11 +112,13 @@ def single_frame_model():
 
     for i in range(4):
         x = blockA(x)
-
+    x = SpatialDropout2D(0.25)(x)
+    
     x = reductionA(x)
 
     for i in range(5):
         x = blockB(x)
+    x = SpatialDropout2D(0.25)(x)
 
     x = reductionB(x)
 
