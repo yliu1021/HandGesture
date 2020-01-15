@@ -17,22 +17,22 @@ def stem(x):
     x = Conv2D(filters=32, kernel_size=3, strides=2, activation='relu', padding='same')(x)
     x = Conv2D(filters=32, kernel_size=3, activation='relu', padding='same')(x)
     x = Conv2D(filters=64, kernel_size=3, activation='relu', padding='same')(x)
-    x = BatchNormalization(renorm=True)(x)
+    x = BatchNormalization(renorm=False)(x)
 
     b1 = MaxPooling2D(pool_size=(3, 3), strides=2, padding='same')(x)
-    b1 = BatchNormalization(renorm=True)(b1)
+    b1 = BatchNormalization(renorm=False)(b1)
     b2 = Conv2D(filters=32, kernel_size=3, strides=2, activation='relu', padding='same')(x)
-    b2 = BatchNormalization(renorm=True)(b2)
+    b2 = BatchNormalization(renorm=False)(b2)
     x = Concatenate(axis=-1)([b1, b2])
 
     b1 = Conv2D(filters=64, kernel_size=1, activation='relu', padding='same')(x)
     b1 = Conv2D(filters=96, kernel_size=3, activation='relu', padding='same')(b1)
-    b1 = BatchNormalization(renorm=True)(b1)
+    b1 = BatchNormalization(renorm=False)(b1)
     b2 = Conv2D(filters=64, kernel_size=1, activation='relu', padding='same')(x)
     b2 = Conv2D(filters=64, kernel_size=(7, 1), activation='relu', padding='same')(b2)
     b2 = Conv2D(filters=64, kernel_size=(1, 7), activation='relu', padding='same')(b2)
     b2 = Conv2D(filters=96, kernel_size=3, activation='relu', padding='same')(b2)
-    b2 = BatchNormalization(renorm=True)(b2)
+    b2 = BatchNormalization(renorm=False)(b2)
     x = Concatenate(axis=-1)([b1, b2])
 
     b1 = Conv2D(filters=192, kernel_size=3, strides=2, activation='relu', padding='same')(x)
@@ -53,7 +53,7 @@ def blockA(x):
 
     res = Concatenate(axis=-1)([res1, res2, res3])
     res = Conv2D(filters=384, kernel_size=1, activation=None, padding='same')(res)
-    res = BatchNormalization(renorm=True)(res)
+    res = BatchNormalization(renorm=False)(res)
 
     x = Lambda(lambda a: a[0] + a[1]*0.15)([x, res])
     return x
@@ -68,7 +68,7 @@ def blockB(x):
 
     res = Concatenate(axis=-1)([res1, res2])
     res = Conv2D(filters=1152, kernel_size=1, activation=None, padding='same')(res)
-    res = BatchNormalization(renorm=True)(res)
+    res = BatchNormalization(renorm=False)(res)
     
     x = Lambda(lambda a: a[0] + a[1]*0.1)([x, res])
     return x
@@ -78,12 +78,12 @@ def reductionA(x):
     b1 = MaxPooling2D(pool_size=3, strides=2, padding='same')(x)
 
     b2 = Conv2D(filters=384, kernel_size=3, strides=2, activation='relu', padding='same')(x)
-    b2 = BatchNormalization(renorm=True)(b2)
+    b2 = BatchNormalization(renorm=False)(b2)
     
     b3 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same')(x)
     b3 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same')(b3)
     b3 = Conv2D(filters=384, kernel_size=3, strides=2, activation='relu', padding='same')(b3)
-    b3 = BatchNormalization(renorm=True)(b3)
+    b3 = BatchNormalization(renorm=False)(b3)
 
     x = Concatenate(axis=-1)([b1, b2, b3])
     return x
@@ -94,16 +94,16 @@ def reductionB(x):
 
     b2 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same')(x)
     b2 = Conv2D(filters=384, kernel_size=3, strides=2, activation='relu', padding='same')(b2)
-    b2 = BatchNormalization(renorm=True)(b2)
+    b2 = BatchNormalization(renorm=False)(b2)
     
     b3 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same')(x)
     b3 = Conv2D(filters=256, kernel_size=3, strides=2, activation='relu', padding='same')(b3)
-    b3 = BatchNormalization(renorm=True)(b3)
+    b3 = BatchNormalization(renorm=False)(b3)
     
     b4 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same')(x)
     b4 = Conv2D(filters=256, kernel_size=3, activation='relu', padding='same')(b4)
     b4 = Conv2D(filters=256, kernel_size=3, strides=2, activation='relu', padding='same')(b4)
-    b4 = BatchNormalization(renorm=True)(b4)
+    b4 = BatchNormalization(renorm=False)(b4)
 
     x = Concatenate(axis=-1)([b1, b2, b3, b4])
     return x
