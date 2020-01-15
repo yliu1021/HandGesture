@@ -19,34 +19,57 @@ def small_dataset():
 
 
 training_dir = './training'
-training_run = 'run5'
-model_loc = os.path.join(training_dir, training_run, 'multi_frame_model_weights.h5')
+training_run = 'run8'
+model_loc = os.path.join(training_dir, training_run, 'full_model.01.h5')
 
-single_frame_model = model.single_frame_model()
-multi_frame_model = model.multi_frame_model(single_frame_model, num_frames=8)
-multi_frame_model.load_weights(model_loc)
+single_frame_encoder = model.single_frame_model()
+multi_frame_encoder = model.multi_frame_model(num_frames=7)
+single_frame_encoder.load_weights(model_loc, by_name=True)
+multi_frame_encoder.load_weights(model_loc, by_name=True)
+single_frame_encoder.save(os.path.join('./inference', training_run, 'single_frame.h5'))
+multi_frame_encoder.save(os.path.join('./inference', training_run, 'multi_frame.h5'))
+
 print('Loaded model')
-multi_frame_model.summary()
-print(multi_frame_model.input)
-print(multi_frame_model.output)
+single_frame_encoder.summary()
+multi_frame_encoder.summary()
 
 
 def convert_to_coreml():
-    input_name = multi_frame_model.inputs[0].name.split(':')[0]
-    keras_output_node_name = multi_frame_model.outputs[0].name.split(':')[0]
+    input_name = multi_frame_encoder.inputs[0].name.split(':')[0]
+    keras_output_node_name = multi_frame_encoder.outputs[0].name.split(':')[0]
     graph_output_node_name = keras_output_node_name.split('/')[-1]
     print('Converting with input name: {}\noutput name: {}\ngraph output name: {}'.format(input_name,
                                                                                           keras_output_node_name,
                                                                                           graph_output_node_name))
-    model = tfcoreml.convert(tf_model_path=model_loc,
-                             input_name_shape_dict={input_name: (1, 8, 108, 192, 3)},
+    model = tfcoreml.convert(tf_model_path=os.path.join('./inference', training_run, 'multi_frame.h5'),
+                             input_name_shape_dict={input_name: (1, 7, 4*6*2048)},
                              output_feature_names=[graph_output_node_name],
                              minimum_ios_deployment_target='13')
 
     inference_dir = './inference'
-    tflite_model_loc = os.path.join(inference_dir, training_run)
-    os.makedirs(tflite_model_loc, exist_ok=True)
-    mlmodel_loc = os.path.join(tflite_model_loc, 'multi_frame_model.mlmodel')
+    mlmodel_loc = os.path.join(inference_dir, training_run)
+    os.makedirs(mlmodel_loc, exist_ok=True)
+    mlmodel_loc = os.path.join(mlmodel_loc, 'MultiFrame.mlmodel')
+    model.save(mlmodel_loc)
+
+    input_name = single_frame_encoder.inputs[0].name.split(':')[0]
+    keras_output_node_name = single_frame_encoder.outputs[0].name.split(':')[0]
+    graph_output_node_name = keras_output_node_name.split('/')[-1]
+    print('Converting with input name: {}\noutput name: {}\ngraph output name: {}'.format(input_name,
+                                                                                          keras_output_node_name,
+                                                                                          graph_output_node_name))
+    model = tfcoreml.convert(tf_model_path=os.path.join('./inference', training_run, 'single_frame.h5'),
+                             input_name_shape_dict={input_name: (1, 108, 192, 3)},
+                             image_input_names=input_name,
+                             is_bgr=True,
+                             image_scale=1/255.0,
+                             output_feature_names=[graph_output_node_name],
+                             minimum_ios_deployment_target='13')
+
+    inference_dir = './inference'
+    mlmodel_loc = os.path.join(inference_dir, training_run)
+    os.makedirs(mlmodel_loc, exist_ok=True)
+    mlmodel_loc = os.path.join(mlmodel_loc, 'SingleFrame.mlmodel')
     model.save(mlmodel_loc)
 
 

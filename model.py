@@ -99,7 +99,6 @@ def reductionB(x):
     b4 = Conv2D(filters=256, kernel_size=3, strides=2, activation='relu', padding='same')(b4)
 
     x = Concatenate(axis=-1)([b1, b2, b3, b4])
-    x = BatchNormalization(renorm=True)(x)
     return x
 
 
