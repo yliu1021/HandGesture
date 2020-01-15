@@ -82,6 +82,8 @@ class DataSet:
         ind = labels.index(label)
         new_label = np.zeros(len(labels), dtype='float32')
         new_label[ind] = 1.0
+        eps = 0.1
+        new_label = (1 - eps)*new_label + eps/len(labels)
         return new_label
 
     _cached_random_number_source = list()
