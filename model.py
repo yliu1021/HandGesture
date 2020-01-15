@@ -128,8 +128,7 @@ def single_frame_model():
 def multi_frame_model(num_frames=None):
     encoded_frame_input = Input(shape=(num_frames, 4, 6, 2048))
 
-    x = Lambda(tf_diff)(encoded_frame_input)
-    x = TimeDistributed(Flatten())(x)
+    x = TimeDistributed(Flatten())(encoded_frame_input)
     x = Dense(512, activation='relu')(x)
     filter_sizes = [512, 512, 512]
     for filter_size in filter_sizes:
@@ -145,7 +144,10 @@ def full_model(num_frames=None):
     
     video_input = Input(shape=(num_frames, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
     frame_encoded = TimeDistributed(single_frame_encoder)(video_input)
-    prediction = multi_frame_encoder(frame_encoded)
+    
+    frame_diffs = Lambda(tf_diff)(frame_encoded)
+    
+    prediction = multi_frame_encoder(frame_diffs)
     
     return single_frame_encoder, multi_frame_encoder, Model(video_input, prediction, name='full_model')
 
