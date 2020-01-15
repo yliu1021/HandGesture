@@ -6,7 +6,7 @@ import glob
 import tensorflow as tf
 from tensorflow.keras.optimizers import *
 from tensorflow.keras.callbacks import *
-from tensorflow_model_optimization.python.core.sparsity.keras import prune, pruning_schedule, pruning_callbacks
+from tensorflow_model_optimization.sparsity import keras as sparsity
 import matplotlib.pyplot as plt
 
 from cosine_warmup_lr import WarmUpCosineDecayScheduler
@@ -63,14 +63,14 @@ def main(should_prune=False):
 
     if should_prune:
         pruning_params = {
-            'pruning_schedule': pruning_schedule.PolynomialDecay(initial_sparsity=0.2,
+            'pruning_schedule': sparsity.PolynomialDecay(initial_sparsity=0.2,
                                                                  final_sparsity=0.8,
                                                                  begin_step=PRUNING_START_EPOCH,
                                                                  end_step=PRUNING_END_EPOCH,
                                                                  frequency=PRUNE_FREQ)
         }
-        single_frame_encoder = prune.prune_low_magnitude(single_frame_encoder, **pruning_params)
-        multi_frame_model = prune.prune_low_magnitude(multi_frame_model, **pruning_params)
+        single_frame_encoder = sparsity.prune_low_magnitude(single_frame_encoder, **pruning_params)
+        multi_frame_model = sparsity.prune_low_magnitude(multi_frame_model, **pruning_params)
 
     full_model = model.full_model(single_frame_encoder, multi_frame_model, num_frames=None)
     single_frame_encoder.summary()
@@ -133,10 +133,11 @@ def main(should_prune=False):
 
     if should_prune:
         callbacks.extend([
-            pruning_callbacks.UpdatePruningStep(),
-            pruning_callbacks.PruningSummaries(log_dir=pruning_dir)
+            sparsity.UpdatePruningStep(),
+            sparsity.PruningSummaries(log_dir=pruning_dir)
         ])
 
+    print(callbacks)
     hist = full_model.fit(
         train_data_generator,
         steps_per_epoch=steps_per_epoch,
@@ -152,9 +153,9 @@ def main(should_prune=False):
     )
 
     if should_prune:
-        single_frame_encoder = prune.strip_pruning(single_frame_encoder)
-        multi_frame_model = prune.strip_pruning(multi_frame_model)
-        full_model = prune.strip_pruning(full_model)
+        single_frame_encoder = sparsity.strip_pruning(single_frame_encoder)
+        multi_frame_model = sparsity.strip_pruning(multi_frame_model)
+        full_model = sparsity.strip_pruning(full_model)
 
     single_frame_encoder.save(single_frame_encoder_model_save_dir)
     multi_frame_model.save(multi_frame_encoder_model_save_dir)
