@@ -126,10 +126,9 @@ def single_frame_model():
 
 
 def multi_frame_model(num_frames=None):
-    encoded_frame_input = Input(shape=(num_frames, 4, 6, 2048))
+    encoded_frame_input = Input(shape=(num_frames, 4 * 6 * 2048))
 
-    x = TimeDistributed(Flatten())(encoded_frame_input)
-    x = Dense(512, activation='relu')(x)
+    x = Dense(512, activation='relu')(encoded_frame_input)
     filter_sizes = [512, 512, 512]
     for filter_size in filter_sizes:
         x = Conv1D(filter_size, kernel_size=3, activation='relu', padding='valid')(x)
@@ -138,18 +137,13 @@ def multi_frame_model(num_frames=None):
     return Model(encoded_frame_input, x, name='multi_frame_model')
 
 
-def full_model(num_frames=None):
-    single_frame_encoder = single_frame_model()
-    multi_frame_encoder = multi_frame_model()
-    
+def full_model(single_frame_encoder, multi_frame_encoder, num_frames=None):
     video_input = Input(shape=(num_frames, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
     frame_encoded = TimeDistributed(single_frame_encoder)(video_input)
-    
     frame_diffs = Lambda(tf_diff)(frame_encoded)
-    
+    frame_diffs = TimeDistributed(Flatten())(frame_diffs)
     prediction = multi_frame_encoder(frame_diffs)
-    
-    return single_frame_encoder, multi_frame_encoder, Model(video_input, prediction, name='full_model')
+    return Model(video_input, prediction, name='full_model')
 
 
 if __name__ == '__main__':
