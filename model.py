@@ -17,20 +17,23 @@ def stem(x):
     x = Conv2D(filters=32, kernel_size=3, strides=2, activation='relu', padding='same')(x)
     x = Conv2D(filters=32, kernel_size=3, activation='relu', padding='same')(x)
     x = Conv2D(filters=64, kernel_size=3, activation='relu', padding='same')(x)
+    x = BatchNormalization(renorm=True)(x)
 
     b1 = MaxPooling2D(pool_size=(3, 3), strides=2, padding='same')(x)
+    b1 = BatchNormalization(renorm=True)(b1)
     b2 = Conv2D(filters=32, kernel_size=3, strides=2, activation='relu', padding='same')(x)
+    b2 = BatchNormalization(renorm=True)(b2)
     x = Concatenate(axis=-1)([b1, b2])
-    x = BatchNormalization(renorm=True)(x)
 
     b1 = Conv2D(filters=64, kernel_size=1, activation='relu', padding='same')(x)
     b1 = Conv2D(filters=96, kernel_size=3, activation='relu', padding='same')(b1)
+    b1 = BatchNormalization(renorm=True)(b1)
     b2 = Conv2D(filters=64, kernel_size=1, activation='relu', padding='same')(x)
     b2 = Conv2D(filters=64, kernel_size=(7, 1), activation='relu', padding='same')(b2)
     b2 = Conv2D(filters=64, kernel_size=(1, 7), activation='relu', padding='same')(b2)
     b2 = Conv2D(filters=96, kernel_size=3, activation='relu', padding='same')(b2)
+    b2 = BatchNormalization(renorm=True)(b2)
     x = Concatenate(axis=-1)([b1, b2])
-    x = BatchNormalization(renorm=True)(x)
 
     b1 = Conv2D(filters=192, kernel_size=3, strides=2, activation='relu', padding='same')(x)
     b2 = MaxPooling2D(pool_size=(2, 2), strides=2, padding='same')(x)
@@ -75,13 +78,14 @@ def reductionA(x):
     b1 = MaxPooling2D(pool_size=3, strides=2, padding='same')(x)
 
     b2 = Conv2D(filters=384, kernel_size=3, strides=2, activation='relu', padding='same')(x)
-
+    b2 = BatchNormalization(renorm=True)(b2)
+    
     b3 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same')(x)
     b3 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same')(b3)
     b3 = Conv2D(filters=384, kernel_size=3, strides=2, activation='relu', padding='same')(b3)
+    b3 = BatchNormalization(renorm=True)(b3)
 
     x = Concatenate(axis=-1)([b1, b2, b3])
-    x = BatchNormalization(renorm=True)(x)
     return x
 
 
@@ -90,13 +94,16 @@ def reductionB(x):
 
     b2 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same')(x)
     b2 = Conv2D(filters=384, kernel_size=3, strides=2, activation='relu', padding='same')(b2)
-
+    b2 = BatchNormalization(renorm=True)(b2)
+    
     b3 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same')(x)
     b3 = Conv2D(filters=256, kernel_size=3, strides=2, activation='relu', padding='same')(b3)
-
+    b3 = BatchNormalization(renorm=True)(b3)
+    
     b4 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same')(x)
     b4 = Conv2D(filters=256, kernel_size=3, activation='relu', padding='same')(b4)
     b4 = Conv2D(filters=256, kernel_size=3, strides=2, activation='relu', padding='same')(b4)
+    b4 = BatchNormalization(renorm=True)(b4)
 
     x = Concatenate(axis=-1)([b1, b2, b3, b4])
     return x
