@@ -110,7 +110,7 @@ def main(should_prune=False):
         }
         full_model = prune.prune_low_magnitude(full_model, **pruning_params)
 
-    optimizer = RMSprop(LEARNING_RATE, decay=0.9, momentum=0.9)
+    optimizer = SGD(LEARNING_RATE, momentum=0.9, nesterov=True)
     full_model.compile(
         optimizer=optimizer,
         loss=temporal_crossentropy,
