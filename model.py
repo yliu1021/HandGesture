@@ -48,6 +48,7 @@ def blockA(x):
 
     res = Concatenate(axis=-1)([res1, res2, res3])
     res = Conv2D(filters=384, kernel_size=1, activation=None, padding='same')(res)
+    res = BatchNormalization(renorm=True)(res)
 
     x = Lambda(lambda a: a[0] + a[1]*0.15)([x, res])
     return x
@@ -62,7 +63,8 @@ def blockB(x):
 
     res = Concatenate(axis=-1)([res1, res2])
     res = Conv2D(filters=1152, kernel_size=1, activation=None, padding='same')(res)
-
+    res = BatchNormalization(renorm=True)(res)
+    
     x = Lambda(lambda a: a[0] + a[1]*0.1)([x, res])
     return x
 
