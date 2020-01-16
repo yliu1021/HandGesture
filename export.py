@@ -2,6 +2,7 @@ import os
 
 import tensorflow as tf
 import tfcoreml
+import coremltools
 
 import model
 import data
@@ -22,18 +23,21 @@ def small_dataset():
         shuffle=True
     )
     for i in range(3):
-        data = next(validation_data_generator)
-        yield data[0]
+        videos = next(validation_data_generator)
+        for vid in videos:
+            yield vid
 
 
 training_dir = './training'
 training_run = 'run8'
-model_loc = os.path.join(training_dir, training_run, 'full_model.01.h5')
+model_loc = os.path.join(training_dir, training_run, 'full_model.02.h5')
 
 single_frame_encoder = model.single_frame_model()
 multi_frame_encoder = model.multi_frame_model(num_frames=7)
-single_frame_encoder.load_weights(model_loc, by_name=True)
-multi_frame_encoder.load_weights(model_loc, by_name=True)
+# single_frame_encoder.load_weights(model_loc, by_name=True)
+# multi_frame_encoder.load_weights(model_loc, by_name=True)
+full_model = model.full_model(single_frame_encoder, multi_frame_encoder, num_frames=8)
+full_model.load_weights(model_loc, by_name=True)
 single_frame_encoder.save(os.path.join('./inference', training_run, 'single_frame.h5'))
 multi_frame_encoder.save(os.path.join('./inference', training_run, 'multi_frame.h5'))
 
@@ -49,9 +53,10 @@ def convert_to_coreml():
     print('Converting with input name: {}\noutput name: {}\ngraph output name: {}'.format(multi_frame_input_name,
                                                                                           keras_output_node_name,
                                                                                           m_graph_output_node_name))
-    multi_frame_mlmodel = tfcoreml.convert(tf_model_path=os.path.join('./inference', training_run, 'multi_frame.h5'),
-                             input_name_shape_dict={multi_frame_input_name: (1, 7, 4*6*2048)},
-                             output_feature_names=[m_graph_output_node_name],
+    multi_frame_mlmodel = coremltools.converters.tensorflow.convert(
+                             filename=os.path.join('./inference', training_run, 'multi_frame.h5'),
+                             inputs={multi_frame_input_name: (1, 7, 4*6*2048)},
+                             outputs=[m_graph_output_node_name],
                              minimum_ios_deployment_target='13')
 
     inference_dir = './inference'
@@ -66,12 +71,13 @@ def convert_to_coreml():
     print('Converting with input name: {}\noutput name: {}\ngraph output name: {}'.format(single_frame_input_name,
                                                                                           keras_output_node_name,
                                                                                           s_graph_output_node_name))
-    single_frame_mlmodel = tfcoreml.convert(tf_model_path=os.path.join('./inference', training_run, 'single_frame.h5'),
-                             input_name_shape_dict={single_frame_input_name: (1, 108, 192, 3)},
+    single_frame_mlmodel = coremltools.converters.tensorflow.convert(
+                             filename=os.path.join('./inference', training_run, 'single_frame.h5'),
+                             inputs={single_frame_input_name: (1, 108, 192, 3)},
                              image_input_names=single_frame_input_name,
                              is_bgr=True,
                              image_scale=1.0/255.0,
-                             output_feature_names=[s_graph_output_node_name],
+                             outputs=[s_graph_output_node_name],
                              minimum_ios_deployment_target='13')
 
     inference_dir = './inference'
@@ -80,6 +86,8 @@ def convert_to_coreml():
     mlmodel_loc = os.path.join(mlmodel_loc, 'SingleFrame.mlmodel')
     single_frame_mlmodel.save(mlmodel_loc)
     
+    single_frame_mlmodel.visualize_spec()
+    multi_frame_mlmodel.visualize_spec()
     # TESTING
     fig, ax = plt.subplots()
     ax.set_ylim(0, 1)
@@ -148,9 +156,31 @@ def convert_to_coreml():
 
 
 def convert_to_tflite():
-    converter = tf.lite.TFLiteConverter.from_keras_model(multi_frame_model)
+    converter = tf.lite.TFLiteConverter.from_keras_model(single_frame_encoder)
     converter.post_training_quantize = True
-    converter.representative_dataset = tf.lite.RepresentativeDataset(small_dataset())
+    converter.optimizations = [tf.lite.Optimize.DEFAULT]
+    # converter.representative_dataset = tf.lite.RepresentativeDataset(small_dataset)
+    print('Converting to tf lite...')
+    tflite_model = converter.convert()
+    print('Converted to tf lite')
+
+    inference_dir = './inference'
+    tflite_model_loc = os.path.join(inference_dir, training_run)
+    os.makedirs(tflite_model_loc, exist_ok=True)
+    tflite_model_loc = os.path.join(tflite_model_loc, 'single_frame_model.tflite')
+    print('Saving tf lite')
+    try:
+        with open(tflite_model_loc, 'wb+') as f:
+            f.write(tflite_model)
+    except Exception as e:
+        print(f'Unable to save: {e}')
+    else:
+        print('Saved tf lite')
+    
+    converter = tf.lite.TFLiteConverter.from_keras_model(multi_frame_encoder)
+    converter.post_training_quantize = True
+    converter.optimizations = [tf.lite.Optimize.DEFAULT]
+    # converter.representative_dataset = tf.lite.RepresentativeDataset(small_dataset())
     print('Converting to tf lite...')
     tflite_model = converter.convert()
     print('Converted to tf lite')
@@ -169,5 +199,6 @@ def convert_to_tflite():
         print('Saved tf lite')
 
 
+
 if __name__ == '__main__':
-    convert_to_coreml()
+    convert_to_tflite()
