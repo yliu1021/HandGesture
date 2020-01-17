@@ -29,8 +29,8 @@ def small_dataset():
 
 
 training_dir = './training'
-training_run = 'run8'
-model_loc = os.path.join(training_dir, training_run, 'full_model.02.h5')
+training_run = 'run9'
+model_loc = os.path.join(training_dir, training_run, 'full_model.09.h5')
 
 single_frame_encoder = model.single_frame_model()
 multi_frame_encoder = model.multi_frame_model(num_frames=7)
