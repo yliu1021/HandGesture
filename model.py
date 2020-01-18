@@ -143,9 +143,13 @@ def multi_frame_model(num_frames=None):
     encoded_frame_input = Input(shape=(num_frames, 4 * 6 * 2048))
 
     x = Dense(256, activation='relu')(encoded_frame_input)
+    x = BatchNormalization(renorm=False)(x)
+    x = Conv1D(256, kernel_size=2, activation='relu', padding='valid')(x)
+    x = BatchNormalization(renorm=False)(x)
     filter_sizes = [256, 256, 256]
     for filter_size in filter_sizes:
         x = Conv1D(filter_size, kernel_size=3, activation='relu', padding='valid')(x)
+        x = BatchNormalization(renorm=False)(x)
 
     x = Dense(NUM_CLASSES)(x)
     return Model(encoded_frame_input, x, name='multi_frame_model')
@@ -155,7 +159,7 @@ def full_model(single_frame_encoder, multi_frame_encoder, num_frames=None):
     video_input = Input(shape=(num_frames, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
     frame_encoded = TimeDistributed(single_frame_encoder)(video_input)
 
-    use_diffs = True
+    use_diffs = False
     if use_diffs:
         frame_diffs = Lambda(tf_diff)(frame_encoded)
         frame_diffs = TimeDistributed(Flatten())(frame_diffs)
@@ -169,7 +173,7 @@ def full_model(single_frame_encoder, multi_frame_encoder, num_frames=None):
 
 if __name__ == '__main__':
     single_frame_encoder = single_frame_model()
-    multi_frame_encoder = multi_frame_model(num_frames=7)
+    multi_frame_encoder = multi_frame_model(num_frames=8)
     model = full_model(single_frame_encoder, multi_frame_encoder, num_frames=8)
     single_frame_encoder.summary()
     multi_frame_encoder.summary()
@@ -189,6 +193,6 @@ if __name__ == '__main__':
     
     start = time.time()
     for i in range(FRAMES):
-        print(multi_frame_encoder.predict(np.zeros(shape=(1, 7, 4*6*2048))).shape)
+        print(multi_frame_encoder.predict(np.zeros(shape=(1, 8, 4*6*2048))).shape)
     end = time.time()
     print((end - start)/FRAMES)
