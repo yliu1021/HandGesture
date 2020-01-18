@@ -1,10 +1,7 @@
 import time
 
 import numpy as np
-<<<<<<< HEAD
 
-=======
->>>>>>> hyperparameter_tuning
 import tensorflow as tf
 from tensorflow.keras import Model, Input, Sequential
 from tensorflow.keras.layers import *
