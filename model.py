@@ -36,7 +36,7 @@ def stem(x):
     b2 = BatchNormalization(renorm=False)(b2)
     x = Concatenate(axis=-1)([b1, b2])
 
-    b1 = Conv2D(filters=192, kernel_size=3, strides=2, activation='relu', padding='same', kernel_regularizer=reg)(x)
+    b1 = Conv2D(filters=192, kernel_size=3, strides=2, activation='relu', padding='same')(x)
     b2 = MaxPooling2D(pool_size=(2, 2), strides=2, padding='same')(x)
     x = Concatenate(axis=-1)([b1, b2])
     return x
@@ -133,6 +133,8 @@ def single_frame_model():
 
     for i in range(3):
         x = blockB(x)
+    
+    x = reductionB(x)
 
     return Model(frame_input, x, name='single_frame_encoder')
 
@@ -143,8 +145,7 @@ def multi_frame_model(num_frames=None):
     x = Dense(256, activation='relu')(encoded_frame_input)
     filter_sizes = [256, 256, 256]
     for filter_size in filter_sizes:
-        x = Conv1D(filter_size, kernel_size=3, activation='relu', padding='valid',
-                   kernel_regularizer=l1_l2(l1=0, l2=0.00001))(x)
+        x = Conv1D(filter_size, kernel_size=3, activation='relu', padding='valid')(x)
 
     x = Dense(NUM_CLASSES)(x)
     return Model(encoded_frame_input, x, name='multi_frame_model')
