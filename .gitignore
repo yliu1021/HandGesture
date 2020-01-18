@@ -1,6 +1,7 @@
 # Project
 training/
 inference/
+fine_tune_data/
 
 # Pycharm
 # User-specific stuff
@@ -12,13 +13,13 @@ inference/
 
 # Generated files
 .idea/**/contentModel.xml
-
 out/
 
 # Python
 # Byte-compiled / optimized / DLL files
 __pycache__/
 venv/
+*.pyc
 
 # Emacs
 *~

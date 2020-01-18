@@ -1,7 +1,10 @@
 import time
 
 import numpy as np
+<<<<<<< HEAD
 
+=======
+>>>>>>> hyperparameter_tuning
 import tensorflow as tf
 from tensorflow.keras import Model, Input, Sequential
 from tensorflow.keras.layers import *
@@ -16,22 +19,24 @@ def tf_diff(x):
 
 
 def stem(x):
-    reg = L1L2(l1=0, l2=0.00001)
-
-    x = Conv2D(filters=32, kernel_size=3, strides=2, activation='relu', padding='same', kernel_regularizer=reg)(x)
-    x = Conv2D(filters=32, kernel_size=3, activation='relu', padding='same', kernel_regularizer=reg)(x)
-    x = Conv2D(filters=64, kernel_size=3, activation='relu', padding='same', kernel_regularizer=reg)(x)
+    x = Conv2D(filters=32, kernel_size=3, strides=2, activation='relu', padding='same')(x)
+    x = Conv2D(filters=32, kernel_size=3, activation='relu', padding='same')(x)
+    x = Conv2D(filters=64, kernel_size=3, activation='relu', padding='same')(x)
+    x = BatchNormalization(renorm=False)(x)
 
     b1 = MaxPooling2D(pool_size=(3, 3), strides=2, padding='same')(x)
-    b2 = Conv2D(filters=32, kernel_size=3, strides=2, activation='relu', padding='same', kernel_regularizer=reg)(x)
+    b2 = Conv2D(filters=32, kernel_size=3, strides=2, activation='relu', padding='same')(x)
+    b2 = BatchNormalization(renorm=False)(b2)
     x = Concatenate(axis=-1)([b1, b2])
 
-    b1 = Conv2D(filters=64, kernel_size=1, activation='relu', padding='same', kernel_regularizer=reg)(x)
-    b1 = Conv2D(filters=96, kernel_size=3, activation='relu', padding='same', kernel_regularizer=reg)(b1)
-    b2 = Conv2D(filters=64, kernel_size=1, activation='relu', padding='same', kernel_regularizer=reg)(x)
-    b2 = Conv2D(filters=64, kernel_size=(7, 1), activation='relu', padding='same', kernel_regularizer=reg)(b2)
-    b2 = Conv2D(filters=64, kernel_size=(1, 7), activation='relu', padding='same', kernel_regularizer=reg)(b2)
-    b2 = Conv2D(filters=96, kernel_size=3, activation='relu', padding='same', kernel_regularizer=reg)(b2)
+    b1 = Conv2D(filters=64, kernel_size=1, activation='relu', padding='same')(x)
+    b1 = Conv2D(filters=96, kernel_size=3, activation='relu', padding='same')(b1)
+    b1 = BatchNormalization(renorm=False)(b1)
+    b2 = Conv2D(filters=64, kernel_size=1, activation='relu', padding='same')(x)
+    b2 = Conv2D(filters=64, kernel_size=(7, 1), activation='relu', padding='same')(b2)
+    b2 = Conv2D(filters=64, kernel_size=(1, 7), activation='relu', padding='same')(b2)
+    b2 = Conv2D(filters=96, kernel_size=3, activation='relu', padding='same')(b2)
+    b2 = BatchNormalization(renorm=False)(b2)
     x = Concatenate(axis=-1)([b1, b2])
 
     b1 = Conv2D(filters=192, kernel_size=3, strides=2, activation='relu', padding='same', kernel_regularizer=reg)(x)
@@ -53,7 +58,8 @@ def blockA(x):
     res3 = SeparableConv2D(filters=48, kernel_size=3, activation='relu', padding='same', kernel_regularizer=reg)(res3)
 
     res = Concatenate(axis=-1)([res1, res2, res3])
-    res = Conv2D(filters=384, kernel_size=1, activation=None, padding='same', kernel_regularizer=reg)(res)
+    res = Conv2D(filters=384, kernel_size=1, activation=None, padding='same')(res)
+    res = BatchNormalization(renorm=False)(res)
 
     x = Lambda(lambda a: a[0] + a[1]*0.15)([x, res])
     return x
@@ -71,7 +77,8 @@ def blockB(x):
                            kernel_regularizer=reg)(res2)
 
     res = Concatenate(axis=-1)([res1, res2])
-    res = Conv2D(filters=1152, kernel_size=1, activation=None, padding='same', kernel_regularizer=reg)(res)
+    res = Conv2D(filters=1152, kernel_size=1, activation=None, padding='same')(res)
+    res = BatchNormalization(renorm=False)(res)
 
     x = Lambda(lambda a: a[0] + a[1]*0.1)([x, res])
     return x
@@ -82,11 +89,13 @@ def reductionA(x):
 
     b1 = MaxPooling2D(pool_size=3, strides=2, padding='same')(x)
 
-    b2 = Conv2D(filters=384, kernel_size=3, strides=2, activation='relu', padding='same', kernel_regularizer=reg)(x)
-
-    b3 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same', kernel_regularizer=reg)(x)
-    b3 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same', kernel_regularizer=reg)(b3)
-    b3 = Conv2D(filters=384, kernel_size=3, strides=2, activation='relu', padding='same', kernel_regularizer=reg)(b3)
+    b2 = Conv2D(filters=384, kernel_size=3, strides=2, activation='relu', padding='same')(x)
+    b2 = BatchNormalization(renorm=False)(b2)
+    
+    b3 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same')(x)
+    b3 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same')(b3)
+    b3 = Conv2D(filters=384, kernel_size=3, strides=2, activation='relu', padding='same')(b3)
+    b3 = BatchNormalization(renorm=False)(b3)
 
     x = Concatenate(axis=-1)([b1, b2, b3])
     return x
@@ -97,15 +106,18 @@ def reductionB(x):
 
     b1 = MaxPooling2D(pool_size=3, strides=2, padding='same')(x)
 
-    b2 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same', kernel_regularizer=reg)(x)
-    b2 = Conv2D(filters=384, kernel_size=3, strides=2, activation='relu', padding='same', kernel_regularizer=reg)(b2)
-
-    b3 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same', kernel_regularizer=reg)(x)
-    b3 = Conv2D(filters=256, kernel_size=3, strides=2, activation='relu', padding='same', kernel_regularizer=reg)(b3)
-
-    b4 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same', kernel_regularizer=reg)(x)
-    b4 = Conv2D(filters=256, kernel_size=3, activation='relu', padding='same', kernel_regularizer=reg)(b4)
-    b4 = Conv2D(filters=256, kernel_size=3, strides=2, activation='relu', padding='same', kernel_regularizer=reg)(b4)
+    b2 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same')(x)
+    b2 = Conv2D(filters=384, kernel_size=3, strides=2, activation='relu', padding='same')(b2)
+    b2 = BatchNormalization(renorm=False)(b2)
+    
+    b3 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same')(x)
+    b3 = Conv2D(filters=256, kernel_size=3, strides=2, activation='relu', padding='same')(b3)
+    b3 = BatchNormalization(renorm=False)(b3)
+    
+    b4 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same')(x)
+    b4 = Conv2D(filters=256, kernel_size=3, activation='relu', padding='same')(b4)
+    b4 = Conv2D(filters=256, kernel_size=3, strides=2, activation='relu', padding='same')(b4)
+    b4 = BatchNormalization(renorm=False)(b4)
 
     x = Concatenate(axis=-1)([b1, b2, b3, b4])
     return x
@@ -117,52 +129,68 @@ def single_frame_model():
 
     x = stem(frame_input)
 
-    for i in range(5):
+    for i in range(3):
         x = blockA(x)
-
+    
     x = reductionA(x)
 
-    for i in range(5):
+    for i in range(3):
         x = blockB(x)
 
     return Model(frame_input, x, name='single_frame_encoder')
 
 
-def multi_frame_model(single_frame_encoder, num_frames=None):
-    video_input = Input(shape=(num_frames, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
+def multi_frame_model(num_frames=None):
+    encoded_frame_input = Input(shape=(num_frames, 4 * 6 * 2048))
 
-    encoded_output = TimeDistributed(single_frame_encoder)(video_input)
-
-    diffed_outputs = Lambda(lambda x: x[:, 1:] - x[:, :-1])(encoded_output)
-    encoded_output = Lambda(lambda x: x[:, 1:])(encoded_output)
-    # x = Concatenate()([encoded_output, diffed_outputs])
-    x = encoded_output
-
-    x = Conv3D(filters=1024, kernel_size=(2, 2, 3), strides=2, activation='relu', padding='valid',
-               kernel_regularizer=l1_l2(l1=0, l2=0.00001))(x)
-    print(x.shape)
-
-    s = x.shape[-1] * x.shape[-2] * x.shape[-3]
-    x = Reshape(target_shape=(-1, s))(x)
-    x = Dense(1024, kernel_regularizer=l1_l2(l1=0, l2=0.00001))(x)
-
-    filter_sizes = [1024, 1024]
+    x = Dense(256, activation='relu')(encoded_frame_input)
+    filter_sizes = [256, 256, 256]
     for filter_size in filter_sizes:
         x = Conv1D(filter_size, kernel_size=3, activation='relu', padding='valid',
                    kernel_regularizer=l1_l2(l1=0, l2=0.00001))(x)
 
-    x = Dense(NUM_CLASSES, kernel_regularizer=l1_l2(l1=0., l2=0.00001))(x)
-    return Model(video_input, x, name='multi_frame_model')
+    x = Dense(NUM_CLASSES)(x)
+    return Model(encoded_frame_input, x, name='multi_frame_model')
+
+
+def full_model(single_frame_encoder, multi_frame_encoder, num_frames=None):
+    video_input = Input(shape=(num_frames, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
+    frame_encoded = TimeDistributed(single_frame_encoder)(video_input)
+
+    use_diffs = True
+    if use_diffs:
+        frame_diffs = Lambda(tf_diff)(frame_encoded)
+        frame_diffs = TimeDistributed(Flatten())(frame_diffs)
+        prediction = multi_frame_encoder(frame_diffs)
+    else:
+        frame_encoded = TimeDistributed(Flatten())(frame_encoded)
+        prediction = multi_frame_encoder(frame_encoded)
+
+    return Model(video_input, prediction, name='full_model')
 
 
 if __name__ == '__main__':
     single_frame_encoder = single_frame_model()
-    multi_frame_encoder = multi_frame_model(single_frame_encoder)
+    multi_frame_encoder = multi_frame_model(num_frames=7)
+    model = full_model(single_frame_encoder, multi_frame_encoder, num_frames=8)
     single_frame_encoder.summary()
     multi_frame_encoder.summary()
 
+    FRAMES = 10
     start = time.time()
-    for i in range(10):
-        print(multi_frame_encoder.predict(np.zeros(shape=(1, 11, 108, 192, 3))))
+    for i in range(FRAMES):
+        print(model.predict(np.zeros(shape=(1, 8, 108, 192, 3))).shape)
     end = time.time()
-    print(end - start)
+    print((end - start)/FRAMES)
+    
+    start = time.time()
+    for i in range(FRAMES):
+        print(single_frame_encoder.predict(np.zeros(shape=(1, 108, 192, 3))).shape)
+    end = time.time()
+    print((end - start)/FRAMES)
+    
+    start = time.time()
+    for i in range(FRAMES):
+        print(multi_frame_encoder.predict(np.zeros(shape=(1, 7, 4*6*2048))).shape)
+    end = time.time()
+    print((end - start)/FRAMES)
