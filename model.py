@@ -142,9 +142,16 @@ def multi_frame_model(num_frames=None):
 def full_model(single_frame_encoder, multi_frame_encoder, num_frames=None):
     video_input = Input(shape=(num_frames, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
     frame_encoded = TimeDistributed(single_frame_encoder)(video_input)
-    frame_diffs = Lambda(tf_diff)(frame_encoded)
-    frame_diffs = TimeDistributed(Flatten())(frame_diffs)
-    prediction = multi_frame_encoder(frame_diffs)
+
+    use_diffs = True
+    if use_diffs:
+        frame_diffs = Lambda(tf_diff)(frame_encoded)
+        frame_diffs = TimeDistributed(Flatten())(frame_diffs)
+        prediction = multi_frame_encoder(frame_diffs)
+    else:
+        frame_encoded = TimeDistributed(Flatten())(frame_encoded)
+        prediction = multi_frame_encoder(frame_encoded)
+
     return Model(video_input, prediction, name='full_model')
 
 

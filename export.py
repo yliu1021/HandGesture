@@ -34,8 +34,6 @@ model_loc = os.path.join(training_dir, training_run, 'full_model.09.h5')
 
 single_frame_encoder = model.single_frame_model()
 multi_frame_encoder = model.multi_frame_model(num_frames=7)
-# single_frame_encoder.load_weights(model_loc, by_name=True)
-# multi_frame_encoder.load_weights(model_loc, by_name=True)
 full_model = model.full_model(single_frame_encoder, multi_frame_encoder, num_frames=8)
 full_model.load_weights(model_loc, by_name=True)
 single_frame_encoder.save(os.path.join('./inference', training_run, 'single_frame.h5'))
@@ -180,7 +178,6 @@ def convert_to_tflite():
     converter = tf.lite.TFLiteConverter.from_keras_model(multi_frame_encoder)
     converter.post_training_quantize = True
     converter.optimizations = [tf.lite.Optimize.DEFAULT]
-    # converter.representative_dataset = tf.lite.RepresentativeDataset(small_dataset())
     print('Converting to tf lite...')
     tflite_model = converter.convert()
     print('Converted to tf lite')

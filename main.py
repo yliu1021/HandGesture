@@ -3,7 +3,7 @@ import queue
 import threading
 import time
 
-from tflite_model import Model
+from tflite_model import TFLiteModel, KerasModel
 
 
 GESTURES = [
@@ -39,10 +39,16 @@ GESTURES = [
 
 def setup_model(callback_queue):
     model_dir = os.path.join('./inference', 'run9')
-    single_frame_model_loc = os.path.join(model_dir, 'single_frame_model.tflite')
-    multi_frame_model_loc = os.path.join(model_dir, 'multi_frame_model.tflite')
-    model = Model(single_frame_model_loc, multi_frame_model_loc)
-    model.start_predicting(0.05, callback_queue)
+    keras = True
+    if keras:
+        single_frame_model_loc = os.path.join(model_dir, 'single_frame.h5')
+        multi_frame_model_loc = os.path.join(model_dir, 'multi_frame.h5')
+        model = KerasModel(single_frame_model_loc, multi_frame_model_loc)
+    else:
+        single_frame_model_loc = os.path.join(model_dir, 'single_frame_model.tflite')
+        multi_frame_model_loc = os.path.join(model_dir, 'multi_frame_model.tflite')
+        model = TFLiteModel(single_frame_model_loc, multi_frame_model_loc)
+    model.start_predicting(0.085, callback_queue)
 
 
 def main():
