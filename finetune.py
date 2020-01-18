@@ -155,12 +155,12 @@ def train(epochs, prev_data):
     multi_frame_encoder.load_weights(multi_frame_encoder_loc, by_name=True)
     
     for layer in single_frame_encoder.layers:
-        if layer.name in ['batch_normalization_12', 'batch_normalization_13', 'batch_normalization_14']:
+        if layer.name in {'conv2d_37', 'conv2d_39', 'conv2d_42'}:
             layer.trainable = True
         else:
             layer.trainable = False
     for layer in multi_frame_encoder.layers:
-        if layer.name == 'dense_1':
+        if layer.name in {'dense_1'}:
             layer.trainable = True
         else:
             layer.trainable = False
@@ -172,57 +172,6 @@ def train(epochs, prev_data):
     
     single_frame_encoder.save(single_frame_encoder_loc)
     multi_frame_encoder.save(multi_frame_encoder_loc)
-    del single_frame_encoder
-    del multi_frame_encoder
-    del full_model
-    single_frame_encoder = model.single_frame_model()
-    multi_frame_encoder = model.multi_frame_model(num_frames=7)
-    full_model = model.full_model(single_frame_encoder, multi_frame_encoder, num_frames=8)
-    training_run = 'run9'
-    single_frame_encoder_loc = os.path.join('./inference', training_run, 'single_frame.h5')
-    multi_frame_encoder_loc = os.path.join('./inference', training_run, 'multi_frame.h5')
-    single_frame_encoder.load_weights(single_frame_encoder_loc, by_name=True)
-    multi_frame_encoder.load_weights(multi_frame_encoder_loc, by_name=True)
-    
-    converter = tf.lite.TFLiteConverter.from_keras_model(single_frame_encoder)
-    converter.post_training_quantize = True
-    converter.optimizations = [tf.lite.Optimize.DEFAULT]
-    print('Converting to tf lite...')
-    tflite_model = converter.convert()
-    print('Converted to tf lite')
-
-    inference_dir = './inference'
-    tflite_model_loc = os.path.join(inference_dir, training_run)
-    os.makedirs(tflite_model_loc, exist_ok=True)
-    tflite_model_loc = os.path.join(tflite_model_loc, 'single_frame_model.tflite')
-    print('Saving tf lite')
-    try:
-        with open(tflite_model_loc, 'wb+') as f:
-            f.write(tflite_model)
-    except Exception as e:
-        print(f'Unable to save: {e}')
-    else:
-        print('Saved tf lite')
-    
-    converter = tf.lite.TFLiteConverter.from_keras_model(multi_frame_encoder)
-    converter.post_training_quantize = True
-    converter.optimizations = [tf.lite.Optimize.DEFAULT]
-    print('Converting to tf lite...')
-    tflite_model = converter.convert()
-    print('Converted to tf lite')
-
-    inference_dir = './inference'
-    tflite_model_loc = os.path.join(inference_dir, training_run)
-    os.makedirs(tflite_model_loc, exist_ok=True)
-    tflite_model_loc = os.path.join(tflite_model_loc, 'multi_frame_model.tflite')
-    print('Saving tf lite')
-    try:
-        with open(tflite_model_loc, 'wb+') as f:
-            f.write(tflite_model)
-    except Exception as e:
-        print(f'Unable to save: {e}')
-    else:
-        print('Saved tf lite')
 
 
 def evaluate():

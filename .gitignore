@@ -2,6 +2,7 @@
 training/
 inference/
 fine_tune_data/
+pb_models/
 
 # Pycharm
 # User-specific stuff

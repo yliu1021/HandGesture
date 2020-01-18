@@ -1,4 +1,5 @@
 import os
+import sys
 
 import tensorflow as tf
 import tfcoreml
@@ -26,22 +27,6 @@ def small_dataset():
         videos = next(validation_data_generator)
         for vid in videos:
             yield vid
-
-
-training_dir = './training'
-training_run = 'run9'
-model_loc = os.path.join(training_dir, training_run, 'full_model.09.h5')
-
-single_frame_encoder = model.single_frame_model()
-multi_frame_encoder = model.multi_frame_model(num_frames=7)
-full_model = model.full_model(single_frame_encoder, multi_frame_encoder, num_frames=8)
-full_model.load_weights(model_loc, by_name=True)
-single_frame_encoder.save(os.path.join('./inference', training_run, 'single_frame.h5'))
-multi_frame_encoder.save(os.path.join('./inference', training_run, 'multi_frame.h5'))
-
-print('Loaded model')
-single_frame_encoder.summary()
-multi_frame_encoder.summary()
 
 
 def convert_to_coreml():
@@ -198,4 +183,21 @@ def convert_to_tflite():
 
 
 if __name__ == '__main__':
-    convert_to_tflite()
+    model_loc = sys.argv[1]
+
+    training_run = 'run10'
+    single_frame_encoder = model.single_frame_model()
+    multi_frame_encoder = model.multi_frame_model(num_frames=8)
+    full_model = model.full_model(single_frame_encoder, multi_frame_encoder, num_frames=8)
+    full_model.load_weights(model_loc, by_name=True)
+    single_frame_encoder.save(os.path.join('./inference', training_run, 'single_frame.h5'))
+    multi_frame_encoder.save(os.path.join('./inference', training_run, 'multi_frame.h5'))
+
+    print('Loaded model')
+    single_frame_encoder.summary()
+    multi_frame_encoder.summary()
+
+    if 'tflite' in sys.argv:
+        convert_to_tflite()
+    if 'coreml' in sys.argv:
+        convert_to_coreml
