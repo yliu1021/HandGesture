@@ -8,5 +8,7 @@ from tensorflow.keras.models import load_model
 K.set_learning_phase(0)
 
 model = load_model(sys.argv[1])
+print(model.input)
+print(model.output)
 
 tf.saved_model.save(model, f'pb_models/{model.name}')

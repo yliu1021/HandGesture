@@ -57,7 +57,6 @@ def main():
     print('Looping')
     while True:
         gesture_pred = gesture_queue.get(block=True)
-        # print(gesture_pred)
         gesture_time = time.time()
         
         gesture = GESTURES[gesture_pred.argmax()]
