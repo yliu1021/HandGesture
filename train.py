@@ -26,7 +26,7 @@ def temporal_avg(y_pred, y_true=None):
 
 
 def temporal_crossentropy(y_true, y_pred):
-    avg_pred = temporal_avg(y_pred, y_true=y_true)
+    avg_pred = temporal_avg(y_pred)
     return tf.nn.softmax_cross_entropy_with_logits(y_true, avg_pred)
 
 

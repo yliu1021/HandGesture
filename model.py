@@ -43,7 +43,7 @@ def stem(x):
 
 
 def blockA(x):
-    reg = L1L2(l1=0., l2=0.0001)
+    reg = L1L2(l1=0., l2=0.001)
 
     res1 = Conv2D(filters=32, kernel_size=1, activation='relu', padding='same', kernel_regularizer=reg)(x)
 
@@ -63,7 +63,7 @@ def blockA(x):
 
 
 def blockB(x):
-    reg = L1L2(l1=0., l2=0.0001)
+    reg = L1L2(l1=0., l2=0.001)
 
     res1 = Conv2D(filters=192, kernel_size=1, activation='relu', padding='same', kernel_regularizer=reg)(x)
 
@@ -82,7 +82,7 @@ def blockB(x):
 
 
 def reductionA(x):
-    reg = L1L2(l1=0., l2=0.0001)
+    reg = L1L2(l1=0., l2=0.001)
 
     b1 = MaxPooling2D(pool_size=3, strides=2, padding='same')(x)
 
@@ -99,7 +99,7 @@ def reductionA(x):
 
 
 def reductionB(x):
-    reg = L1L2(l1=0., l2=0.0001)
+    reg = L1L2(l1=0., l2=0.001)
 
     b1 = MaxPooling2D(pool_size=3, strides=2, padding='same')(x)
 
