@@ -15,13 +15,18 @@ import data
 from constants import *
 
 
-def temporal_avg(y_pred):
-    avg_pred = tf.reduce_mean(y_pred, axis=1)
+def temporal_avg(y_pred, y_true=None):
+    if y_true is None:
+        avg_pred = tf.reduce_mean(y_pred, axis=1)
+    else:
+        selected_pred = y_pred * y_true[:, None, :]
+        weights = tf.reduce_sum(selected_pred, axis=2) / tf.reduce_sum(selected_pred, axis=(1, 2))[:, None]
+        avg_pred = tf.reduce_sum(y_pred * weights[:, :, None], axis=1)
     return avg_pred
 
 
 def temporal_crossentropy(y_true, y_pred):
-    avg_pred = temporal_avg(y_pred)
+    avg_pred = temporal_avg(y_pred, y_true=y_true)
     return tf.nn.softmax_cross_entropy_with_logits(y_true, avg_pred)
 
 
