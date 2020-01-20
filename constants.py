@@ -12,4 +12,4 @@ PRUNING_END_EPOCH = 75
 PRUNE_FREQ = 5
 
 NUM_FRAMES = 20  # number of frames
-MIN_FPS = 8  # recommended to be less than or equal to 12 because the dataset has a max fps of 12
+MIN_FPS = 10  # recommended to be less than or equal to 12 because the dataset has a max fps of 12

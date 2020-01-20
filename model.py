@@ -22,21 +22,21 @@ def stem(x):
     x = BatchNormalization(renorm=False)(x)
 
     b1 = MaxPooling2D(pool_size=(3, 3), strides=2, padding='same')(x)
-    b2 = Conv2D(filters=32, kernel_size=3, strides=2, activation='relu', padding='same')(x)
+    b2 = SeparableConv2D(filters=32, kernel_size=3, strides=2, activation='relu', padding='same')(x)
     b2 = BatchNormalization(renorm=False)(b2)
     x = Concatenate(axis=-1)([b1, b2])
 
     b1 = Conv2D(filters=64, kernel_size=1, activation='relu', padding='same')(x)
-    b1 = Conv2D(filters=96, kernel_size=3, activation='relu', padding='same')(b1)
+    b1 = SeparableConv2D(filters=96, kernel_size=3, activation='relu', padding='same')(b1)
     b1 = BatchNormalization(renorm=False)(b1)
     b2 = Conv2D(filters=64, kernel_size=1, activation='relu', padding='same')(x)
-    b2 = Conv2D(filters=64, kernel_size=(7, 1), activation='relu', padding='same')(b2)
-    b2 = Conv2D(filters=64, kernel_size=(1, 7), activation='relu', padding='same')(b2)
-    b2 = Conv2D(filters=96, kernel_size=3, activation='relu', padding='same')(b2)
+    b2 = SeparableConv2D(filters=64, kernel_size=(7, 1), activation='relu', padding='same')(b2)
+    b2 = SeparableConv2D(filters=64, kernel_size=(1, 7), activation='relu', padding='same')(b2)
+    b2 = SeparableConv2D(filters=96, kernel_size=3, activation='relu', padding='same')(b2)
     b2 = BatchNormalization(renorm=False)(b2)
     x = Concatenate(axis=-1)([b1, b2])
 
-    b1 = Conv2D(filters=192, kernel_size=3, strides=2, activation='relu', padding='same')(x)
+    b1 = SeparableConv2D(filters=192, kernel_size=3, strides=2, activation='relu', padding='same')(x)
     b2 = MaxPooling2D(pool_size=(2, 2), strides=2, padding='same')(x)
     x = Concatenate(axis=-1)([b1, b2])
     return x
@@ -86,12 +86,12 @@ def reductionA(x):
 
     b1 = MaxPooling2D(pool_size=3, strides=2, padding='same')(x)
 
-    b2 = Conv2D(filters=384, kernel_size=3, strides=2, activation='relu', padding='same')(x)
+    b2 = SeparableConv2D(filters=384, kernel_size=3, strides=2, activation='relu', padding='same')(x)
     b2 = BatchNormalization(renorm=False)(b2)
     
     b3 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same')(x)
     b3 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same')(b3)
-    b3 = Conv2D(filters=384, kernel_size=3, strides=2, activation='relu', padding='same')(b3)
+    b3 = SeparableConv2D(filters=384, kernel_size=3, strides=2, activation='relu', padding='same')(b3)
     b3 = BatchNormalization(renorm=False)(b3)
 
     x = Concatenate(axis=-1)([b1, b2, b3])
@@ -104,16 +104,16 @@ def reductionB(x):
     b1 = MaxPooling2D(pool_size=3, strides=2, padding='same')(x)
 
     b2 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same')(x)
-    b2 = Conv2D(filters=384, kernel_size=3, strides=2, activation='relu', padding='same')(b2)
+    b2 = SeparableConv2D(filters=384, kernel_size=3, strides=2, activation='relu', padding='same')(b2)
     b2 = BatchNormalization(renorm=False)(b2)
     
     b3 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same')(x)
-    b3 = Conv2D(filters=256, kernel_size=3, strides=2, activation='relu', padding='same')(b3)
+    b3 = SeparableConv2D(filters=256, kernel_size=3, strides=2, activation='relu', padding='same')(b3)
     b3 = BatchNormalization(renorm=False)(b3)
     
     b4 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same')(x)
-    b4 = Conv2D(filters=256, kernel_size=3, activation='relu', padding='same')(b4)
-    b4 = Conv2D(filters=256, kernel_size=3, strides=2, activation='relu', padding='same')(b4)
+    b4 = SeparableConv2D(filters=256, kernel_size=3, activation='relu', padding='same')(b4)
+    b4 = SeparableConv2D(filters=256, kernel_size=3, strides=2, activation='relu', padding='same')(b4)
     b4 = BatchNormalization(renorm=False)(b4)
 
     x = Concatenate(axis=-1)([b1, b2, b3, b4])
@@ -126,7 +126,7 @@ def single_frame_model():
 
     x = stem(frame_input)
 
-    for i in range(2):
+    for i in range(1):
         x = blockA(x)
     
     x = reductionA(x)
@@ -144,11 +144,11 @@ def multi_frame_model(num_frames=None):
 
     x = Dense(256, activation='relu')(encoded_frame_input)
     x = BatchNormalization(renorm=False)(x)
-    x = Conv1D(256, kernel_size=2, activation='relu', padding='valid')(x)
+    x = Conv1D(256, kernel_size=2, activation='relu', padding='valid', strides=2)(x)
     x = BatchNormalization(renorm=False)(x)
-    filter_sizes = [256, 256, 256]
+    filter_sizes = [256, 256]
     for filter_size in filter_sizes:
-        x = Conv1D(filter_size, kernel_size=3, activation='relu', padding='valid')(x)
+        x = SeparableConv1D(filter_size, kernel_size=3, activation='relu', padding='valid')(x)
         x = BatchNormalization(renorm=False)(x)
 
     x = Dense(NUM_CLASSES)(x)
@@ -173,26 +173,30 @@ def full_model(single_frame_encoder, multi_frame_encoder, num_frames=None):
 
 if __name__ == '__main__':
     single_frame_encoder = single_frame_model()
-    multi_frame_encoder = multi_frame_model(num_frames=8)
-    model = full_model(single_frame_encoder, multi_frame_encoder, num_frames=8)
+    multi_frame_encoder = multi_frame_model(num_frames=10)
+    model = full_model(single_frame_encoder, multi_frame_encoder, num_frames=10)
     single_frame_encoder.summary()
     multi_frame_encoder.summary()
+
+    frames = np.zeros(shape=(1, 10, 108, 192, 3))
+    single_frame = np.zeros(shape=(1, 108, 192, 3))
+    encoded_frames = np.zeros(shape=(1, 10, 4*6*2048))
 
     FRAMES = 10
     start = time.time()
     for i in range(FRAMES):
-        print(model.predict(np.zeros(shape=(1, 8, 108, 192, 3))).shape)
+        print(model.predict(frames).shape)
     end = time.time()
     print((end - start)/FRAMES)
     
     start = time.time()
     for i in range(FRAMES):
-        print(single_frame_encoder.predict(np.zeros(shape=(1, 108, 192, 3))).shape)
+        print(single_frame_encoder.predict(single_frame).shape)
     end = time.time()
     print((end - start)/FRAMES)
     
     start = time.time()
     for i in range(FRAMES):
-        print(multi_frame_encoder.predict(np.zeros(shape=(1, 8, 4*6*2048))).shape)
+        print(multi_frame_encoder.predict(encoded_frames).shape)
     end = time.time()
     print((end - start)/FRAMES)
