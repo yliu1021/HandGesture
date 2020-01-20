@@ -19,8 +19,8 @@ def temporal_avg(y_pred, y_true=None):
     if y_true is None:
         avg_pred = tf.reduce_mean(y_pred, axis=1)
     else:
-        selected_pred = y_pred * y_true[:, None, :]
-        weights = tf.reduce_sum(selected_pred, axis=2) / tf.reduce_sum(selected_pred, axis=(1, 2))[:, None]
+        # weights = tf.reduce_sum(selected_pred, axis=2) / tf.reduce_sum(selected_pred, axis=(1, 2))[:, None]
+        weights = tf.linspace(0.0, 2.0, 6)[None, :]
         avg_pred = tf.reduce_sum(y_pred * weights[:, :, None], axis=1)
     return avg_pred
 
