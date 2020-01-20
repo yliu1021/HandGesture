@@ -126,12 +126,12 @@ def single_frame_model():
 
     x = stem(frame_input)
 
-    for i in range(3):
+    for i in range(2):
         x = blockA(x)
     
     x = reductionA(x)
 
-    for i in range(3):
+    for i in range(2):
         x = blockB(x)
     
     x = reductionB(x)
