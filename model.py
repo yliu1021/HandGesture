@@ -20,6 +20,7 @@ def stem(x):
     x = Conv2D(filters=32, kernel_size=3, activation='relu', padding='same')(x)
     x = Conv2D(filters=64, kernel_size=3, activation='relu', padding='same')(x)
     x = BatchNormalization(renorm=False)(x)
+    x = SpatialDropout2D(0.1)(x)
 
     b1 = MaxPooling2D(pool_size=(3, 3), strides=2, padding='same')(x)
     b2 = SeparableConv2D(filters=32, kernel_size=3, strides=2, activation='relu', padding='same')(x)
