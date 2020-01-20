@@ -144,8 +144,10 @@ def multi_frame_model(num_frames=None):
 
     x = Dense(256, activation='relu')(encoded_frame_input)
     x = BatchNormalization(renorm=False)(x)
+    x = SpatialDropout1D(0.1)(x)
     x = Conv1D(256, kernel_size=2, activation='relu', padding='valid', strides=2)(x)
     x = BatchNormalization(renorm=False)(x)
+    x = SpatialDropout1D(0.1)(x)
     filter_sizes = [256, 256]
     for filter_size in filter_sizes:
         x = SeparableConv1D(filter_size, kernel_size=3, activation='relu', padding='valid')(x)
