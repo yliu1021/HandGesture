@@ -20,7 +20,6 @@ def stem(x):
     x = Conv2D(filters=32, kernel_size=3, activation='relu', padding='same')(x)
     x = Conv2D(filters=64, kernel_size=3, activation='relu', padding='same')(x)
     x = BatchNormalization(renorm=False)(x)
-    x = SpatialDropout2D(0.1)(x)
 
     b1 = MaxPooling2D(pool_size=(3, 3), strides=2, padding='same')(x)
     b2 = SeparableConv2D(filters=32, kernel_size=3, strides=2, activation='relu', padding='same')(x)
@@ -145,10 +144,8 @@ def multi_frame_model(num_frames=None):
 
     x = Dense(256, activation='relu')(encoded_frame_input)
     x = BatchNormalization(renorm=False)(x)
-    x = SpatialDropout1D(0.1)(x)
     x = Conv1D(256, kernel_size=2, activation='relu', padding='valid', strides=2)(x)
     x = BatchNormalization(renorm=False)(x)
-    x = SpatialDropout1D(0.1)(x)
     filter_sizes = [256, 256]
     for filter_size in filter_sizes:
         x = SeparableConv1D(filter_size, kernel_size=3, activation='relu', padding='valid')(x)
@@ -176,7 +173,7 @@ def full_model(single_frame_encoder, multi_frame_encoder, num_frames=None):
 
 if __name__ == '__main__':
     single_frame_encoder = single_frame_model()
-    multi_frame_encoder = multi_frame_model(num_frames=10)
+    multi_frame_encoder = multi_frame_model(num_frames=None)
     model = full_model(single_frame_encoder, multi_frame_encoder, num_frames=10)
     single_frame_encoder.summary()
     multi_frame_encoder.summary()
