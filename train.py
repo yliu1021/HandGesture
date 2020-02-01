@@ -9,7 +9,6 @@ from tensorflow.keras.callbacks import *
 from tensorflow_model_optimization.sparsity import keras as sparsity
 import matplotlib.pyplot as plt
 
-from cosine_warmup_lr import WarmUpCosineDecayScheduler
 import model
 import data
 from constants import *
