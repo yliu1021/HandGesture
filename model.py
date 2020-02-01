@@ -242,10 +242,9 @@ def multi_frame_model(num_frames=None):
     x = reductionB_temporal(x)
     x = temporal_shuffle(x)
 
-    
-
     x = TimeDistributed(Flatten())(x)
     x = Dense(NUM_CLASSES)(x)
+    x = MaxPool1D(pool_size=4, strides=2)(x)
     return Model(encoded_frame_input, x, name='multi_frame_model')
 
 
