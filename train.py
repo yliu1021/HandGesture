@@ -131,8 +131,6 @@ def main(should_prune=False):
         EarlyStopping(monitor='val_temporal_accuracy', patience=15, mode='max'),
         ModelCheckpoint(filepath=os.path.join(training_dir, 'full_model.{epoch:02d}.h5')),
         TensorBoard(log_dir=tensorboard_dir, histogram_freq=2, write_images=True),
-        # WarmUpCosineDecayScheduler(LEARNING_RATE, total_steps=steps_per_epoch, warmup_learning_rate=0.0001,
-        #                            warmup_steps=100, hold_base_rate_steps=10)
     ]
 
     if should_prune:
