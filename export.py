@@ -53,7 +53,7 @@ def convert_to_coreml():
                                                                                           m_graph_output_node_name))
     multi_frame_mlmodel = tfcoreml.convert(
                              tf_model_path=os.path.join('./inference', training_run, 'multi_frame.h5'),
-                             input_name_shape_dict={multi_frame_input_name: (1, 8, 4*6*2048)},
+                             input_name_shape_dict={multi_frame_input_name: (1, 10, 4*6*2048)},
                              output_feature_names=[m_graph_output_node_name],
                              minimum_ios_deployment_target='13')
 
@@ -106,13 +106,13 @@ def convert_to_coreml():
         frame_img = Image.fromarray(frame)
         frame = frame.astype(np.float32) / 255.0
 
-        frame_encoded = single_frame_model.predict({single_frame_input_name: frame_img})[s_graph_output_node_name]
+        frame_encoded = single_frame_model.predict({single_frame_input_name: frame_img}, useCPUOnly=True)[s_graph_output_node_name]
         frame_encoded = frame_encoded.reshape(4*6*2048)
         # print('{:.3f} {:.3f} {:.3f}'.format(frame_encoded.min(), frame_encoded.max(), frame_encoded.std()))
         model_input[:-1] = model_input[1:]
         model_input[-1] = np.reshape(frame_encoded, 4*6*2048)
         
-        pred = multi_frame_model.predict({multi_frame_input_name: model_input})[m_graph_output_node_name][0][0]
+        pred = multi_frame_model.predict({multi_frame_input_name: model_input}, useCPUOnly=True)[m_graph_output_node_name][0][0]
         # print('{:.3f} {:.3f} {:.3f}'.format(pred.min(), pred.max(), pred.std()))
         pred = pred[:-2]
         pred = softmax(pred)

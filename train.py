@@ -63,7 +63,7 @@ def main(should_prune=False):
     starting_epoch = 0
 
     single_frame_encoder = model.single_frame_model()
-    multi_frame_model = model.multi_frame_model(num_frames=None)
+    multi_frame_model = model.multi_frame_model(num_frames=NUM_FRAMES)
 
     if should_prune:
         pruning_params = {
@@ -76,7 +76,7 @@ def main(should_prune=False):
         single_frame_encoder = sparsity.prune_low_magnitude(single_frame_encoder, **pruning_params)
         multi_frame_model = sparsity.prune_low_magnitude(multi_frame_model, **pruning_params)
 
-    full_model = model.full_model(single_frame_encoder, multi_frame_model, num_frames=None)
+    full_model = model.full_model(single_frame_encoder, multi_frame_model, num_frames=NUM_FRAMES)
     single_frame_encoder.summary()
     multi_frame_model.summary()
 

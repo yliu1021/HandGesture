@@ -123,34 +123,128 @@ def reductionB(x):
 def single_frame_model():
     input_shape = (IMAGE_HEIGHT, IMAGE_WIDTH, 3)
     frame_input = Input(shape=input_shape)
-
     x = stem(frame_input)
-
-    for i in range(1):
-        x = blockA(x)
-    
-    x = reductionA(x)
-
-    for i in range(2):
-        x = blockB(x)
-    
-    x = reductionB(x)
-
     return Model(frame_input, x, name='single_frame_encoder')
 
 
+def temporal_shuffle(x):
+    num_frames = 8
+    layer_depth = x.shape[-1]
+    frames = tf.split(x, num_or_size_splits=num_frames, axis=1)
+    frames = [tf.squeeze(frame, axis=[1]) for frame in frames]
+    shuffled_frames = list()
+    for _ in range(num_frames):
+        partial_frames = list()
+        for frame in frames:
+            partial_frame = Dense(layer_depth / num_frames, activation='relu')(frame)
+            partial_frames.append(partial_frame)
+        shuffled_frame = Concatenate(axis=-1)(partial_frames)
+        shuffled_frames.append(shuffled_frame)
+    shuffled_frames = tf.stack(shuffled_frames, axis=1)
+    return shuffled_frames
+
+
+def blockA_temporal(x):
+    reg = L1L2(l1=0., l2=0.001)
+
+    res1 = TimeDistributed(Conv2D(filters=32, kernel_size=1, activation='relu', padding='same', kernel_regularizer=reg))(x)
+
+    res2 = TimeDistributed(Conv2D(filters=32, kernel_size=1, activation='relu', padding='same', kernel_regularizer=reg))(x)
+    res2 = TimeDistributed(SeparableConv2D(filters=32, kernel_size=3, activation='relu', padding='same', kernel_regularizer=reg))(res2)
+
+    res3 = TimeDistributed(Conv2D(filters=32, kernel_size=1, activation='relu', padding='same', kernel_regularizer=reg))(x)
+    res3 = TimeDistributed(SeparableConv2D(filters=48, kernel_size=3, activation='relu', padding='same', kernel_regularizer=reg))(res3)
+    res3 = TimeDistributed(SeparableConv2D(filters=48, kernel_size=3, activation='relu', padding='same', kernel_regularizer=reg))(res3)
+
+    res = Concatenate(axis=-1)([res1, res2, res3])
+    res = TimeDistributed(Conv2D(filters=384, kernel_size=1, activation=None, padding='same'))(res)
+    res = BatchNormalization(renorm=False)(res)
+
+    x = Lambda(lambda a: a[0] + a[1]*0.15)([x, res])
+    return x
+
+
+def blockB_temporal(x):
+    reg = L1L2(l1=0., l2=0.001)
+
+    res1 = TimeDistributed(Conv2D(filters=192, kernel_size=1, activation='relu', padding='same', kernel_regularizer=reg))(x)
+
+    res2 = TimeDistributed(Conv2D(filters=128, kernel_size=1, activation='relu', padding='same', kernel_regularizer=reg))(x)
+    res2 = TimeDistributed(SeparableConv2D(filters=160, kernel_size=(7, 1), activation='relu', padding='same',
+                           kernel_regularizer=reg))(res2)
+    res2 = TimeDistributed(SeparableConv2D(filters=192, kernel_size=(1, 7), activation='relu', padding='same',
+                           kernel_regularizer=reg))(res2)
+
+    res = Concatenate(axis=-1)([res1, res2])
+    res = TimeDistributed(Conv2D(filters=1152, kernel_size=1, activation=None, padding='same'))(res)
+    res = BatchNormalization(renorm=False)(res)
+
+    x = Lambda(lambda a: a[0] + a[1]*0.1)([x, res])
+    return x
+
+
+def reductionA_temporal(x):
+    reg = L1L2(l1=0., l2=0.001)
+
+    b1 = TimeDistributed(MaxPooling2D(pool_size=3, strides=2, padding='same'))(x)
+
+    b2 = TimeDistributed(SeparableConv2D(filters=384, kernel_size=3, strides=2, activation='relu', padding='same'))(x)
+    b2 = BatchNormalization(renorm=False)(b2)
+
+    b3 = TimeDistributed(Conv2D(filters=256, kernel_size=1, activation='relu', padding='same'))(x)
+    b3 = TimeDistributed(Conv2D(filters=256, kernel_size=1, activation='relu', padding='same'))(b3)
+    b3 = TimeDistributed(SeparableConv2D(filters=384, kernel_size=3, strides=2, activation='relu', padding='same'))(b3)
+    b3 = BatchNormalization(renorm=False)(b3)
+
+    x = Concatenate(axis=-1)([b1, b2, b3])
+    return x
+
+
+def reductionB_temporal(x):
+    reg = L1L2(l1=0., l2=0.001)
+
+    b1 = TimeDistributed(MaxPooling2D(pool_size=3, strides=2, padding='same'))(x)
+
+    b2 = TimeDistributed(Conv2D(filters=256, kernel_size=1, activation='relu', padding='same'))(x)
+    b2 = TimeDistributed(SeparableConv2D(filters=384, kernel_size=3, strides=2, activation='relu', padding='same'))(b2)
+    b2 = BatchNormalization(renorm=False)(b2)
+
+    b3 = TimeDistributed(Conv2D(filters=256, kernel_size=1, activation='relu', padding='same'))(x)
+    b3 = TimeDistributed(SeparableConv2D(filters=256, kernel_size=3, strides=2, activation='relu', padding='same'))(b3)
+    b3 = BatchNormalization(renorm=False)(b3)
+
+    b4 = TimeDistributed(Conv2D(filters=256, kernel_size=1, activation='relu', padding='same'))(x)
+    b4 = TimeDistributed(SeparableConv2D(filters=256, kernel_size=3, activation='relu', padding='same'))(b4)
+    b4 = TimeDistributed(SeparableConv2D(filters=256, kernel_size=3, strides=2, activation='relu', padding='same'))(b4)
+    b4 = BatchNormalization(renorm=False)(b4)
+
+    x = Concatenate(axis=-1)([b1, b2, b3, b4])
+    return x
+
+
 def multi_frame_model(num_frames=None):
-    encoded_frame_input = Input(shape=(num_frames, 4 * 6 * 2048))
+    if num_frames != 8:
+        raise ValueError('This model requires 8 frames exactly')
 
-    x = Dense(256, activation='relu')(encoded_frame_input)
-    x = BatchNormalization(renorm=False)(x)
-    x = Conv1D(256, kernel_size=2, activation='relu', padding='valid', strides=2)(x)
-    x = BatchNormalization(renorm=False)(x)
-    filter_sizes = [256, 256]
-    for filter_size in filter_sizes:
-        x = SeparableConv1D(filter_size, kernel_size=3, activation='relu', padding='valid')(x)
-        x = BatchNormalization(renorm=False)(x)
+    encoded_frame_input = Input(shape=(num_frames, 14, 24, 384))
 
+    x = temporal_shuffle(encoded_frame_input)
+    
+    for _ in range(1):
+        x = blockA_temporal(x)
+
+    x = reductionA_temporal(x)
+    
+    for _ in range(1):
+        x = blockB_temporal(x)
+        x = temporal_shuffle(x)
+
+    x = reductionB_temporal(x)
+    x = temporal_shuffle(x)
+
+    
+
+    x = TimeDistributed(Flatten())(x)
     x = Dense(NUM_CLASSES)(x)
     return Model(encoded_frame_input, x, name='multi_frame_model')
 
@@ -158,14 +252,12 @@ def multi_frame_model(num_frames=None):
 def full_model(single_frame_encoder, multi_frame_encoder, num_frames=None):
     video_input = Input(shape=(num_frames, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
     frame_encoded = TimeDistributed(single_frame_encoder)(video_input)
-
+    print(frame_encoded.shape)
     use_diffs = False
     if use_diffs:
         frame_diffs = Lambda(tf_diff)(frame_encoded)
-        frame_diffs = TimeDistributed(Flatten())(frame_diffs)
         prediction = multi_frame_encoder(frame_diffs)
     else:
-        frame_encoded = TimeDistributed(Flatten())(frame_encoded)
         prediction = multi_frame_encoder(frame_encoded)
 
     return Model(video_input, prediction, name='full_model')
@@ -173,14 +265,14 @@ def full_model(single_frame_encoder, multi_frame_encoder, num_frames=None):
 
 if __name__ == '__main__':
     single_frame_encoder = single_frame_model()
-    multi_frame_encoder = multi_frame_model(num_frames=None)
-    model = full_model(single_frame_encoder, multi_frame_encoder, num_frames=10)
+    multi_frame_encoder = multi_frame_model(num_frames=8)
+    model = full_model(single_frame_encoder, multi_frame_encoder, num_frames=8)
     single_frame_encoder.summary()
     multi_frame_encoder.summary()
 
-    frames = np.zeros(shape=(1, 10, 108, 192, 3))
+    frames = np.zeros(shape=(1, 8, 108, 192, 3))
     single_frame = np.zeros(shape=(1, 108, 192, 3))
-    encoded_frames = np.zeros(shape=(1, 10, 4*6*2048))
+    encoded_frames = np.zeros(shape=(1, 8, 14, 24, 384))
 
     FRAMES = 10
     start = time.time()

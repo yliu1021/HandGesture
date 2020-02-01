@@ -1,7 +1,7 @@
 IMAGE_WIDTH = 192
 IMAGE_HEIGHT = 108
 
-TRAINING_RUN = 'run13'
+TRAINING_RUN = 'run14'
 BATCH_SIZE = 32
 NUM_CLASSES = 27
 LEARNING_RATE = 1*10**-2
@@ -11,5 +11,5 @@ PRUNING_START_EPOCH = 25
 PRUNING_END_EPOCH = 75
 PRUNE_FREQ = 5
 
-NUM_FRAMES = 20  # number of frames
-MIN_FPS = 10  # recommended to be less than or equal to 12 because the dataset has a max fps of 12
+NUM_FRAMES = 8  # number of frames
+MIN_FPS = 2     # recommended to be less than or equal to 12 because the dataset has a max fps of 12
