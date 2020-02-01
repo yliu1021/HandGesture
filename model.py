@@ -234,14 +234,14 @@ def multi_frame_model(num_frames=None):
         x = blockA_temporal(x)
 
     x = reductionA_temporal(x)
-    x = temporal_shuffle(x)
     
     for _ in range(3):
         x = blockB_temporal(x)
-        x = temporal_shuffle(x)
 
+    x = temporal_shuffle(x)
     x = reductionB_temporal(x)
     x = temporal_shuffle(x)
+    x = reductionB_temporal(x)
 
     x = TimeDistributed(Flatten())(x)
     x = Dense(NUM_CLASSES)(x)
