@@ -244,7 +244,6 @@ def multi_frame_model(num_frames=None):
 
     x = TimeDistributed(Flatten())(x)
     x = Dense(NUM_CLASSES)(x)
-    x = MaxPool1D(pool_size=8)(x)
     return Model(encoded_frame_input, x, name='multi_frame_model')
 
 
