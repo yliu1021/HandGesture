@@ -244,14 +244,14 @@ def multi_frame_model(num_frames=None):
 
     x = TimeDistributed(Flatten())(x)
     x = Dense(NUM_CLASSES)(x)
-    x = MaxPool1D(pool_size=4, strides=2)(x)
+    x = MaxPool1D(pool_size=8)(x)
     return Model(encoded_frame_input, x, name='multi_frame_model')
 
 
 def full_model(single_frame_encoder, multi_frame_encoder, num_frames=None):
     video_input = Input(shape=(num_frames, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
     frame_encoded = TimeDistributed(single_frame_encoder)(video_input)
-    print(frame_encoded.shape)
+
     use_diffs = False
     if use_diffs:
         frame_diffs = Lambda(tf_diff)(frame_encoded)
