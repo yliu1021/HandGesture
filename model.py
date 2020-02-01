@@ -230,12 +230,13 @@ def multi_frame_model(num_frames=None):
 
     x = temporal_shuffle(encoded_frame_input)
     
-    for _ in range(1):
+    for _ in range(2):
         x = blockA_temporal(x)
 
     x = reductionA_temporal(x)
+    x = temporal_shuffle(x)
     
-    for _ in range(1):
+    for _ in range(3):
         x = blockB_temporal(x)
         x = temporal_shuffle(x)
 
