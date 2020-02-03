@@ -132,14 +132,9 @@ def temporal_shuffle(x):
     layer_depth = x.shape[-1]
     frames = tf.split(x, num_or_size_splits=num_frames, axis=1)
     frames = [tf.squeeze(frame, axis=[1]) for frame in frames]
-    shuffled_frames = list()
-    for _ in range(num_frames):
-        partial_frames = list()
-        for frame in frames:
-            partial_frame = Dense(layer_depth / num_frames, activation='relu')(frame)
-            partial_frames.append(partial_frame)
-        shuffled_frame = Concatenate(axis=-1)(partial_frames)
-        shuffled_frames.append(shuffled_frame)
+    split_frames = [tf.split(frame, num_frames, axis=-1) for frame in frames]
+    shuffled_frames = list(map(list, zip(*split_frames)))
+    shuffled_frames = [Concatenate(axis=-1)(frame) for frame in shuffled_frames]
     shuffled_frames = tf.stack(shuffled_frames, axis=1)
     return shuffled_frames
 
@@ -227,21 +222,23 @@ def multi_frame_model(num_frames=None):
         raise ValueError('This model requires 8 frames exactly')
 
     encoded_frame_input = Input(shape=(num_frames, 14, 24, 384))
+    x = encoded_frame_input
 
-    x = temporal_shuffle(encoded_frame_input)
-    
-    for _ in range(2):
+    for _ in range(5):
         x = blockA_temporal(x)
+        x = temporal_shuffle(x)
 
     x = reductionA_temporal(x)
+    x = temporal_shuffle(x)
     
-    for _ in range(3):
+    for _ in range(10):
         x = blockB_temporal(x)
+        x = temporal_shuffle(x)
 
-    x = temporal_shuffle(x)
     x = reductionB_temporal(x)
     x = temporal_shuffle(x)
     x = reductionB_temporal(x)
+    x = temporal_shuffle(x)
 
     x = TimeDistributed(Flatten())(x)
     x = Dense(NUM_CLASSES)(x)
