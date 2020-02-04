@@ -246,14 +246,14 @@ def multi_frame_model(num_frames=None):
     encoded_frame_input = Input(shape=(num_frames, 14, 24, 384))
     x = encoded_frame_input
 
-    for _ in range(3):
+    for _ in range(5):
         x = blockA_temporal(x)
         x = temporal_shuffle(x)
 
     x = reductionA_temporal(x)
     x = temporal_shuffle(x)
     
-    for _ in range(4):
+    for _ in range(10):
         x = blockB_temporal(x)
         x = temporal_shuffle(x)
 
