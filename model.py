@@ -249,14 +249,14 @@ def multi_frame_model(num_frames=None):
 
     for _ in range(3):
         x = blockA_temporal(x)
-        x = temporal_shuffle(x)
+        x = nonlocal_block(x)
 
     x = reductionA_temporal(x)
     x = temporal_shuffle(x)
     
     for _ in range(4):
         x = blockB_temporal(x)
-        x = nonlocal_block(x)
+        x = temporal_shuffle(x)
 
     x = reductionB_temporal(x)
     x = temporal_shuffle(x)
