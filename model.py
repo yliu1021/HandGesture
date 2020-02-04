@@ -157,7 +157,7 @@ def nonlocal_block(x):
     
     res = att @ g
     res = Reshape((num_frames, height, width, 512))(res)
-    res = Conv3D(filters=channels, kernel_size=1, activation='relu')(res)
+    res = Conv3D(filters=channels, kernel_size=1)(res)
     return res + x
 
 
