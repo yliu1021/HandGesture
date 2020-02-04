@@ -159,7 +159,7 @@ def nonlocal_block(x):
     res = Reshape((num_frames, height, width, 512))(res)
     res = Conv3D(filters=channels, kernel_size=1, activation='relu')(res)
     res = BatchNormalization()(res)
-    return 0.5*res + x
+    return res + x
 
 
 def blockA_temporal(x):
