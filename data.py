@@ -170,7 +170,8 @@ def main():
             print(one_hot_label, labels[one_hot_label.argmax()])
             for image in video:
                 cv2.imshow('video', image)
-                cv2.waitKey(int(1 / MIN_FPS * 1000))
+                cv2.waitKey(100)
+                # cv2.waitKey(int(1 / MIN_FPS * 1000))
             cv2_keyboard_block()
 
     frame_samples = train_dataset.generate_frame_samples(10)

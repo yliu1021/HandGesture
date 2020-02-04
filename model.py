@@ -139,6 +139,29 @@ def temporal_shuffle(x):
     return shuffled_frames
 
 
+def nonlocal_block(x):
+    _, num_frames, height, width, channels = x.shape
+    
+    theta = Conv3D(filters=512, kernel_size=1)(x)
+    phi = Conv3D(filters=512, kernel_size=1)(x)
+
+    theta = Reshape((num_frames * height * width, 512))(theta)
+    phi = Reshape((num_frames * height * width, 512))(phi)
+    phi = tf.transpose(phi, perm=[0, 2, 1])
+    
+    att = theta @ phi
+    att = Activation('softmax')(att)
+
+    g = Conv3D(filters=512, kernel_size=1)(x)
+    g = Reshape((num_frames * height * width, 512))(g)
+    
+    res = att @ g
+    res = Reshape((num_frames, height, width, 512))(res)
+    res = Conv3D(filters=channels, kernel_size=1, activation='relu')(res)
+    res = BatchNormalization()(res)
+    return 0.5*res + x
+
+
 def blockA_temporal(x):
     reg = L1L2(l1=0., l2=0.001)
 
@@ -224,21 +247,21 @@ def multi_frame_model(num_frames=None):
     encoded_frame_input = Input(shape=(num_frames, 14, 24, 384))
     x = encoded_frame_input
 
-    for _ in range(5):
+    for _ in range(3):
         x = blockA_temporal(x)
-        x = temporal_shuffle(x)
+        x = nonlocal_block(x)
 
     x = reductionA_temporal(x)
-    x = temporal_shuffle(x)
+    x = nonlocal_block(x)
     
     for _ in range(10):
         x = blockB_temporal(x)
-        x = temporal_shuffle(x)
+        x = nonlocal_block(x)
 
     x = reductionB_temporal(x)
-    x = temporal_shuffle(x)
+    x = nonlocal_block(x)
     x = reductionB_temporal(x)
-    x = temporal_shuffle(x)
+    x = nonlocal_block(x)
 
     x = TimeDistributed(Flatten())(x)
     x = Dense(NUM_CLASSES)(x)
