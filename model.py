@@ -139,24 +139,24 @@ def temporal_shuffle(x):
     return shuffled_frames
 
 
-def nonlocal_block(x):
+def nonlocal_block(x, squeeze_size=512):
     _, num_frames, height, width, channels = x.shape
     
-    theta = Conv3D(filters=512, kernel_size=1)(x)
-    phi = Conv3D(filters=512, kernel_size=1)(x)
+    theta = Conv3D(filters=squeeze_size, kernel_size=1, activation='relu')(x)
+    phi = Conv3D(filters=squeeze_size, kernel_size=1, activation='relu')(x)
 
-    theta = Reshape((num_frames * height * width, 512))(theta)
-    phi = Reshape((num_frames * height * width, 512))(phi)
+    theta = Reshape((num_frames * height * width, squeeze_size))(theta)
+    phi = Reshape((num_frames * height * width, squeeze_size))(phi)
     phi = tf.transpose(phi, perm=[0, 2, 1])
     
     att = theta @ phi
     att = Activation('softmax')(att)
 
-    g = Conv3D(filters=512, kernel_size=1)(x)
-    g = Reshape((num_frames * height * width, 512))(g)
+    g = Conv3D(filters=squeeze_size, kernel_size=1)(x)
+    g = Reshape((num_frames * height * width, squeeze_size))(g)
     
     res = att @ g
-    res = Reshape((num_frames, height, width, 512))(res)
+    res = Reshape((num_frames, height, width, squeeze_size))(res)
     res = Conv3D(filters=channels, kernel_size=1)(res)
     return res + x
 
@@ -248,23 +248,23 @@ def multi_frame_model(num_frames=None):
 
     for _ in range(5):
         x = blockA_temporal(x)
-        x = temporal_shuffle(x)
+        # x = temporal_shuffle(x)
 
     x = reductionA_temporal(x)
-    x = temporal_shuffle(x)
+    # x = temporal_shuffle(x)
     
     for _ in range(10):
         x = blockB_temporal(x)
-        x = temporal_shuffle(x)
+        # x = temporal_shuffle(x)
 
     x = reductionB_temporal(x)
-    x = temporal_shuffle(x)
-    x = reductionB_temporal(x)
-    x = temporal_shuffle(x)
+    # x = temporal_shuffle(x)
 
-    x = nonlocal_block(x)
+    x = nonlocal_block(x, squeeze_size=1024)
 
     x = TimeDistributed(Flatten())(x)
+    x = TimeDistributed(Dense(256, activation='relu'))(x)
+    x = TimeDistributed(Dense(256, activation='relu'))(x)
     x = Dense(NUM_CLASSES)(x)
     return Model(encoded_frame_input, x, name='multi_frame_model')
 
