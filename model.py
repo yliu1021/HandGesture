@@ -168,12 +168,14 @@ def multi_frame_model(num_frames=None):
     x = encoded_frame_input
 
     x = nonlocal_block(x, squeeze_size=1024)
-
     x = TimeDistributed(Flatten())(x)
+
     x = TimeDistributed(Dense(1024, activation='relu'))(x)
     x = BatchNormalization()(x)
+
     x = TimeDistributed(Dense(1024, activation='relu'))(x)
     x = BatchNormalization()(x)
+
     x = Dense(NUM_CLASSES)(x)
     return Model(encoded_frame_input, x, name='multi_frame_model')
 
@@ -192,7 +194,7 @@ def full_model(single_frame_encoder, multi_frame_encoder, num_frames=None):
     return Model(video_input, prediction, name='full_model')
 
 
-if __name__ == '__main__':
+def main():
     single_frame_encoder = single_frame_model()
     multi_frame_encoder = multi_frame_model(num_frames=NUM_FRAMES)
     model = full_model(single_frame_encoder, multi_frame_encoder, num_frames=NUM_FRAMES)
@@ -208,16 +210,20 @@ if __name__ == '__main__':
     for i in range(FRAMES):
         print(model.predict(frames).shape)
     end = time.time()
-    print((end - start)/FRAMES)
-    
+    print((end - start) / FRAMES)
+
     start = time.time()
     for i in range(FRAMES):
         print(single_frame_encoder.predict(single_frame).shape)
     end = time.time()
-    print((end - start)/FRAMES)
-    
+    print((end - start) / FRAMES)
+
     start = time.time()
     for i in range(FRAMES):
         print(multi_frame_encoder.predict(encoded_frames).shape)
     end = time.time()
-    print((end - start)/FRAMES)
+    print((end - start) / FRAMES)
+
+
+if __name__ == '__main__':
+    main()
