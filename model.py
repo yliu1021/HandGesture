@@ -207,6 +207,7 @@ def main():
     model = full_model(single_frame_encoder, multi_frame_encoder, num_frames=NUM_FRAMES)
     single_frame_encoder.summary()
     multi_frame_encoder.summary()
+    model.summary()
 
     frames = np.zeros(shape=(1, NUM_FRAMES, 108, 192, 3))
     single_frame = np.zeros(shape=(1, 108, 192, 3))
