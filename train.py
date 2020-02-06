@@ -117,7 +117,7 @@ def main(should_prune=False):
                        tf.TensorShape([BATCH_SIZE, NUM_CLASSES]))
     )
 
-    optimizer = SGD(LEARNING_RATE, momentum=0.9, nesterov=True)
+    optimizer = RMSprop(LEARNING_RATE, momentum=0.9, epsilon=1)
     full_model.compile(
         optimizer=optimizer,
         loss=temporal_crossentropy,
@@ -126,8 +126,8 @@ def main(should_prune=False):
 
     steps_per_epoch = data.train_dataset.num_samples() // BATCH_SIZE
     callbacks = [
-        ReduceLROnPlateau(monitor='val_temporal_accuracy', factor=0.1, patience=10, mode='max'),
-        EarlyStopping(monitor='val_temporal_accuracy', patience=15, mode='max'),
+        ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=6, mode='min'),
+        EarlyStopping(monitor='val_temporal_accuracy', patience=12, mode='max'),
         ModelCheckpoint(filepath=os.path.join(training_dir, 'full_model.{epoch:02d}.h5')),
         TensorBoard(log_dir=tensorboard_dir, histogram_freq=2, write_images=True),
     ]
