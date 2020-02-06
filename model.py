@@ -124,7 +124,7 @@ def single_frame_model():
     input_shape = (IMAGE_HEIGHT, IMAGE_WIDTH, 3)
     frame_input = Input(shape=input_shape)
     x = frame_input
-    x = Lambda(lambda a: 2*a - 1)(x)
+
     x = InceptionResNetV2(include_top=False, input_shape=input_shape)(x)
 
     return Model(frame_input, x, name='single_frame_encoder')
@@ -168,14 +168,21 @@ def multi_frame_model(num_frames=None):
     x = encoded_frame_input
 
     x = nonlocal_block(x, squeeze_size=1024)
+    x = BatchNormalization()(x)
+    x = TimeDistributed(Dense(1024, activation='relu'))(x)
+    x = BatchNormalization()(x)
+
+    x = nonlocal_block(x, squeeze_size=1024)
+    x = BatchNormalization()(x)
+    x = TimeDistributed(Dense(1024, activation='relu'))(x)
+    x = BatchNormalization()(x)
+
+    x = nonlocal_block(x, squeeze_size=1024)
+    x = BatchNormalization()(x)
+    x = TimeDistributed(Dense(1024, activation='relu'))(x)
+    x = BatchNormalization()(x)
+
     x = TimeDistributed(Flatten())(x)
-
-    x = TimeDistributed(Dense(1024, activation='relu'))(x)
-    x = BatchNormalization()(x)
-
-    x = TimeDistributed(Dense(1024, activation='relu'))(x)
-    x = BatchNormalization()(x)
-
     x = Dense(NUM_CLASSES)(x)
     return Model(encoded_frame_input, x, name='multi_frame_model')
 
