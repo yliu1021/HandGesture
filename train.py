@@ -63,7 +63,7 @@ def main(should_prune=False):
 
     single_frame_encoder = model.single_frame_model()
     for layer in single_frame_encoder.layers:
-        layer.trainable=False
+        layer.trainable = False
     multi_frame_model = model.multi_frame_model(num_frames=NUM_FRAMES)
 
     if should_prune:
