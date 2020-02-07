@@ -125,7 +125,8 @@ def single_frame_model():
     frame_input = Input(shape=input_shape)
     x = frame_input
 
-    x = InceptionResNetV2(include_top=False, input_shape=input_shape)(x)
+    # x = InceptionResNetV2(include_top=False, input_shape=input_shape)(x)
+    x = MobileNetV2(include_top=False, input_shape=input_shape)(x)
 
     return Model(frame_input, x, name='single_frame_encoder')
 
@@ -164,22 +165,22 @@ def nonlocal_block(x, squeeze_size=512):
 
 
 def multi_frame_model(num_frames=None):
-    encoded_frame_input = Input(shape=(num_frames, 2, 4, 1536))
+    encoded_frame_input = Input(shape=(num_frames, 4, 6, 1280))
     x = encoded_frame_input
 
-    x = nonlocal_block(x, squeeze_size=1024)
+    x = nonlocal_block(x, squeeze_size=2048)
     x = BatchNormalization()(x)
-    x = TimeDistributed(Dense(1024, activation='relu'))(x)
-    x = BatchNormalization()(x)
-
-    x = nonlocal_block(x, squeeze_size=1024)
-    x = BatchNormalization()(x)
-    x = TimeDistributed(Dense(1024, activation='relu'))(x)
+    x = TimeDistributed(Dense(2048, activation='relu'))(x)
     x = BatchNormalization()(x)
 
-    x = nonlocal_block(x, squeeze_size=1024)
+    x = nonlocal_block(x, squeeze_size=2048)
     x = BatchNormalization()(x)
-    x = TimeDistributed(Dense(1024, activation='relu'))(x)
+    x = TimeDistributed(Dense(2048, activation='relu'))(x)
+    x = BatchNormalization()(x)
+
+    x = nonlocal_block(x, squeeze_size=2048)
+    x = BatchNormalization()(x)
+    x = TimeDistributed(Dense(2048, activation='relu'))(x)
     x = BatchNormalization()(x)
 
     x = TimeDistributed(Flatten())(x)
@@ -211,7 +212,7 @@ def main():
 
     frames = np.zeros(shape=(1, NUM_FRAMES, 108, 192, 3))
     single_frame = np.zeros(shape=(1, 108, 192, 3))
-    encoded_frames = np.zeros(shape=(1, NUM_FRAMES, 2, 4, 1536))
+    encoded_frames = np.zeros(shape=(1, NUM_FRAMES, 4, 6, 1280))
 
     FRAMES = 10
     start = time.time()
