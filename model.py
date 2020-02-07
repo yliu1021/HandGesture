@@ -214,22 +214,25 @@ def main():
     single_frame = np.zeros(shape=(1, 108, 192, 3))
     encoded_frames = np.zeros(shape=(1, NUM_FRAMES, 4, 6, 1280))
 
-    FRAMES = 5
+    FRAMES = 12
+    print('Benchmarking entire model')
     start = time.time()
     for i in range(FRAMES):
-        print(model.predict(frames).shape)
+        model.predict(frames)
     end = time.time()
     print((end - start) / FRAMES)
 
+    print('Benchmarking single frame model')
     start = time.time()
     for i in range(FRAMES):
-        print(single_frame_encoder.predict(single_frame).shape)
+        single_frame_encoder.predict(single_frame)
     end = time.time()
     print((end - start) / FRAMES)
 
+    print('Benchmarking multi frame model')
     start = time.time()
     for i in range(FRAMES):
-        print(multi_frame_encoder.predict(encoded_frames).shape)
+        multi_frame_encoder.predict(encoded_frames)
     end = time.time()
     print((end - start) / FRAMES)
 
