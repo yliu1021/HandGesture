@@ -214,7 +214,7 @@ def main():
     single_frame = np.zeros(shape=(1, 108, 192, 3))
     encoded_frames = np.zeros(shape=(1, NUM_FRAMES, 4, 6, 1280))
 
-    FRAMES = 10
+    FRAMES = 5
     start = time.time()
     for i in range(FRAMES):
         print(model.predict(frames).shape)
