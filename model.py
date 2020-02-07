@@ -167,19 +167,19 @@ def multi_frame_model(num_frames=None):
     encoded_frame_input = Input(shape=(num_frames, 4, 6, 1280))
     x = encoded_frame_input
 
-    x = nonlocal_block(x, squeeze_size=2048)
+    x = nonlocal_block(x, squeeze_size=1024)
     x = BatchNormalization()(x)
-    x = TimeDistributed(Dense(2048, activation='relu'))(x)
-    x = BatchNormalization()(x)
-
-    x = nonlocal_block(x, squeeze_size=2048)
-    x = BatchNormalization()(x)
-    x = TimeDistributed(Dense(2048, activation='relu'))(x)
+    x = TimeDistributed(Dense(1024, activation='relu'))(x)
     x = BatchNormalization()(x)
 
-    x = nonlocal_block(x, squeeze_size=2048)
+    x = nonlocal_block(x, squeeze_size=1024)
     x = BatchNormalization()(x)
-    x = TimeDistributed(Dense(2048, activation='relu'))(x)
+    x = TimeDistributed(Dense(1024, activation='relu'))(x)
+    x = BatchNormalization()(x)
+
+    x = nonlocal_block(x, squeeze_size=1024)
+    x = BatchNormalization()(x)
+    x = TimeDistributed(Dense(1024, activation='relu'))(x)
     x = BatchNormalization()(x)
 
     x = TimeDistributed(Flatten())(x)
