@@ -125,7 +125,7 @@ def single_frame_model():
     frame_input = Input(shape=input_shape)
     x = frame_input
 
-    x = MobileNetV2(include_top=False, weights=None, input_shape=input_shape)(x)
+    x = MobileNetV2(include_top=False, weights='imagenet', input_shape=input_shape)(x)
 
     return Model(frame_input, x, name='single_frame_encoder')
 
