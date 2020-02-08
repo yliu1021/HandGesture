@@ -62,6 +62,8 @@ def main(should_prune=False):
     starting_epoch = 0
 
     single_frame_encoder = model.single_frame_model()
+    for layer in single_frame_encoder.layers:
+        layer.trainable = False
     multi_frame_model = model.multi_frame_model(num_frames=NUM_FRAMES)
 
     if should_prune:
@@ -138,23 +140,6 @@ def main(should_prune=False):
             sparsity.PruningSummaries(log_dir=pruning_dir)
         ])
 
-    for layer in single_frame_encoder.layers:
-        layer.trainable = False
-    full_model.fit(
-        train_data_generator,
-        steps_per_epoch=steps_per_epoch,
-        epochs=20,
-        callbacks=callbacks,
-        validation_data=validation_data_generator,
-        validation_steps=VALIDATION_STEPS,
-        max_queue_size=10,
-        workers=16,
-        use_multiprocessing=True,
-        shuffle=True,
-        initial_epoch=starting_epoch,
-    )
-    for layer in single_frame_encoder.layers:
-        layer.trainable = True
     hist = full_model.fit(
         train_data_generator,
         steps_per_epoch=steps_per_epoch,
