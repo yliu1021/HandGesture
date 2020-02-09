@@ -169,12 +169,15 @@ def multi_frame_model(num_frames=None):
 
     x = TimeDistributed(Flatten())(x)
     x = Dense(2048, activation='relu')(x)
+    x = BatchNormalization()(x)
     x = Conv1D(filters=2048, kernel_size=2, strides=2, activation='relu')(x)
+    x = BatchNormalization()(x)
 
     filter_sizes = [2048, 2048, 2048, 2048]
     kernel_sizes = [3, 2, 2, 2]
     for filter_size, kernel_size in zip(filter_sizes, kernel_sizes):
         x = Conv1D(filters=filter_size, kernel_size=kernel_size, activation='relu')(x)
+        x = BatchNormalization()(x)
 
     x = Dense(NUM_CLASSES)(x)
     return Model(encoded_frame_input, x, name='multi_frame_model')
