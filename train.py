@@ -84,7 +84,7 @@ def main(should_prune=False):
         last_save = previous_saves[-1]
         starting_epoch = int(last_save.split('.')[-2])
         print(f'Restoring weights from last run: {last_save}')
-        full_model.load_weights(last_save)
+        full_model.load_weights(last_save, by_name=True)
 
     train_data_generator = data.train_dataset.data_generator(
         num_frames=NUM_FRAMES,
