@@ -36,14 +36,16 @@ def convert_to_coreml():
     print('Converting with input name: {}\noutput name: {}\ngraph output name: {}'.format(single_frame_input_name,
                                                                                           keras_output_node_name,
                                                                                           s_graph_output_node_name))
-    single_frame_mlmodel = tfcoreml.convert(
-                             tf_model_path=os.path.join('./inference', training_run, 'single_frame.h5'),
-                             input_name_shape_dict={single_frame_input_name: (1, 108, 192, 3)},
-                             image_input_names=single_frame_input_name,
-                             is_bgr=True,
-                             image_scale=1./255.,
-                             output_feature_names=[s_graph_output_node_name],
-                             minimum_ios_deployment_target='13')
+    single_frame_mlmodel = tfcoreml.convert(tf_model_path=os.path.join('./inference', training_run, 'single_frame.h5'),
+                                            input_name_shape_dict={single_frame_input_name: (1, 108, 192, 3)},
+                                            image_input_names=single_frame_input_name,
+                                            is_bgr=True,
+                                            image_scale=1. / 127.5,
+                                            blue_bias=-1,
+                                            green_bias=-1,
+                                            red_bias=-1,
+                                            output_feature_names=[s_graph_output_node_name],
+                                            minimum_ios_deployment_target='13')
 
     multi_frame_input_name = multi_frame_encoder.inputs[0].name.split(':')[0]
     keras_output_node_name = multi_frame_encoder.outputs[0].name.split(':')[0]
@@ -51,11 +53,10 @@ def convert_to_coreml():
     print('Converting with input name: {}\noutput name: {}\ngraph output name: {}'.format(multi_frame_input_name,
                                                                                           keras_output_node_name,
                                                                                           m_graph_output_node_name))
-    multi_frame_mlmodel = tfcoreml.convert(
-                             tf_model_path=os.path.join('./inference', training_run, 'multi_frame.h5'),
-                             input_name_shape_dict={multi_frame_input_name: (1, 10, 4*6*2048)},
-                             output_feature_names=[m_graph_output_node_name],
-                             minimum_ios_deployment_target='13')
+    multi_frame_mlmodel = tfcoreml.convert(tf_model_path=os.path.join('./inference', training_run, 'multi_frame.h5'),
+                                           input_name_shape_dict={multi_frame_input_name: (1, 12, 4 * 6 * 1280)},
+                                           output_feature_names=[m_graph_output_node_name],
+                                           minimum_ios_deployment_target='13')
 
     inference_dir = './inference'
     mlmodel_loc = os.path.join(inference_dir, training_run)
@@ -68,7 +69,7 @@ def convert_to_coreml():
     os.makedirs(mlmodel_loc, exist_ok=True)
     mlmodel_loc = os.path.join(mlmodel_loc, 'SingleFrame.mlmodel')
     single_frame_mlmodel.save(mlmodel_loc)
-    
+
     # single_frame_mlmodel.visualize_spec()
     # multi_frame_mlmodel.visualize_spec()
     # TESTING
@@ -79,41 +80,41 @@ def convert_to_coreml():
     plt.xticks(rotation=90)
     plt.tight_layout()
 
-    num_frames = 8
-    frame_time = 1/MIN_FPS * 1000
-    
+    num_frames = 12
+    MIN_FPS = 10
+    frame_time = 1 / MIN_FPS * 1000
+
     single_frame_model = single_frame_mlmodel
     multi_frame_model = multi_frame_mlmodel
 
     cap = cv2.VideoCapture(0)
 
     image_size = (IMAGE_WIDTH, IMAGE_HEIGHT)
-    model_input = np.zeros((1, num_frames, 4*6*2048), dtype=np.float32)
+    model_input = np.zeros((1, num_frames, 4 * 6 * 1280), dtype=np.float32)
 
     def softmax(x):
         e_x = np.exp(x - np.max(x))
         return e_x / e_x.sum()
-    
+
     def animate(i):
         start = time.time()
         ret, frame = cap.read()
-        
+
         if not ret:
             print("Couldn't read input")
             return
-        
+
         frame = cv2.resize(frame, image_size)
         frame_img = Image.fromarray(frame)
         frame = frame.astype(np.float32) / 255.0
 
-        frame_encoded = single_frame_model.predict({single_frame_input_name: frame_img}, useCPUOnly=True)[s_graph_output_node_name]
-        frame_encoded = frame_encoded.reshape(4*6*2048)
-        # print('{:.3f} {:.3f} {:.3f}'.format(frame_encoded.min(), frame_encoded.max(), frame_encoded.std()))
+        frame_encoded = single_frame_model.predict({single_frame_input_name: frame_img})[
+            s_graph_output_node_name]
+        frame_encoded = frame_encoded.reshape(4 * 6 * 1280)
         model_input[:-1] = model_input[1:]
-        model_input[-1] = np.reshape(frame_encoded, 4*6*2048)
-        
-        pred = multi_frame_model.predict({multi_frame_input_name: model_input}, useCPUOnly=True)[m_graph_output_node_name][0][0]
-        # print('{:.3f} {:.3f} {:.3f}'.format(pred.min(), pred.max(), pred.std()))
+        model_input[-1] = np.reshape(frame_encoded, 4 * 6 * 1280)
+
+        pred = multi_frame_model.predict({multi_frame_input_name: model_input})[m_graph_output_node_name][0][0]
         pred = pred[:-2]
         pred = softmax(pred)
 
@@ -122,7 +123,7 @@ def convert_to_coreml():
 
         # Display the resulting frame
         cv2.imshow('frame', frame)
-        if cv2.waitKey(max(1, int(frame_time - (time.time() - start)*1000))) & 0xFF == ord('q'):
+        if cv2.waitKey(max(1, int(frame_time - (time.time() - start) * 1000))) & 0xFF == ord('q'):
             cap.release()
             cv2.destroyAllWindows()
             exit(0)
@@ -156,7 +157,7 @@ def convert_to_tflite():
         print(f'Unable to save: {e}')
     else:
         print('Saved tf lite')
-    
+
     converter = tf.lite.TFLiteConverter.from_keras_model(multi_frame_encoder)
     converter.post_training_quantize = True
     converter.optimizations = [tf.lite.Optimize.DEFAULT]
@@ -178,15 +179,14 @@ def convert_to_tflite():
         print('Saved tf lite')
 
 
-
 if __name__ == '__main__':
     tf.keras.backend.set_learning_phase(0)
     model_loc = sys.argv[1]
 
-    training_run = 'run12'
+    training_run = 'run23'
     single_frame_encoder = model.single_frame_model()
-    multi_frame_encoder = model.multi_frame_model(num_frames=10)
-    full_model = model.full_model(single_frame_encoder, multi_frame_encoder, num_frames=10)
+    multi_frame_encoder = model.multi_frame_model(num_frames=12)
+    full_model = model.full_model(single_frame_encoder, multi_frame_encoder, num_frames=12)
     full_model.load_weights(model_loc, by_name=True)
 
     print('Loaded model')
