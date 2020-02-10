@@ -179,9 +179,8 @@ def multi_frame_model(num_frames=None):
         x = SeparableConv1D(filters=filter_size, kernel_size=kernel_size, depth_multiplier=2, activation='relu')(x)
         x = BatchNormalization()(x)
     
-    x = Dropout(0.25)(x)
     x = Dense(256, activation='relu')(x)
-    x = Dropout(0.25)(x)
+    x = Dropout(0.2)(x)
     x = Dense(NUM_CLASSES)(x)
     return Model(encoded_frame_input, x, name='multi_frame_model')
 
