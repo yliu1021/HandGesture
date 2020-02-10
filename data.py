@@ -116,10 +116,9 @@ class DataSet:
         images = np.array([cv2.resize(cv2.imread(x), img_size) for x in image_files])
         images = images / 255.0
 
-        images += np.random.normal(0, 0.01, size=images.shape)
-        f = 2 ** random.gauss(0, 0.1)
-        images = images * f + random.gauss(0, 0.1)
-
+        f = 2 ** random.gauss(0, 0.25)
+        images = images * f + random.gauss(0, 0.25)
+        images += np.random.normal(0, 0.1, size=images.shape)
         return images
 
     @staticmethod
