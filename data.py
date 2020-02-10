@@ -114,12 +114,11 @@ class DataSet:
             image_files = [image_files[i] for i in frame_indices]
         img_size = (IMAGE_WIDTH, IMAGE_HEIGHT)
         images = np.array([cv2.resize(cv2.imread(x), img_size) for x in image_files])
-        images = (images / 127.5) - 1
+        images = images / 255.0
 
-        images += np.random.normal(0, 0.1, size=images.shape)
-        f = 2 ** random.gauss(0, 0.25)
-        images = images * f + random.gauss(0, 0.2)
-        images = np.clip(images, -1, 1)
+        images += np.random.normal(0, 0.01, size=images.shape)
+        f = 2 ** random.gauss(0, 0.1)
+        images = images * f + random.gauss(0, 0.1)
 
         return images
 
@@ -170,7 +169,7 @@ def main():
     for batch in dataset.data_generator(num_frames=NUM_FRAMES, batch_size=64, shuffle=True):
         print('Got batch')
         videos, one_hot_labels = batch
-        videos = (videos + 1) / 2
+        videos = np.clip(videos, 0, 1)
         for video, one_hot_label in zip(videos, one_hot_labels):
             print(one_hot_label, labels[one_hot_label.argmax()])
             for image in video:
