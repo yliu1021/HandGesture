@@ -143,7 +143,7 @@ class DataSet:
             image_files = [image_files[i] for i in frame_indices]
         img_size = (IMAGE_WIDTH, IMAGE_HEIGHT)
         images = np.array([cv2.resize(cv2.imread(x), img_size) for x in image_files])
-        images = (images / 127.5) - 1
+        images = images / 255.0
         return images
 
 
