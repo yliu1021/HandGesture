@@ -179,7 +179,6 @@ def multi_frame_model(num_frames=None):
         x = Conv1D(filters=filter_size, kernel_size=kernel_size, activation='relu')(x)
         x = BatchNormalization()(x)
 
-    x = Dropout(0.1)(x)
     x = Dense(NUM_CLASSES)(x)
     return Model(encoded_frame_input, x, name='multi_frame_model')
 
