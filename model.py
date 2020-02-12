@@ -197,39 +197,55 @@ def full_model(single_frame_encoder, multi_frame_encoder, num_frames=None):
     return Model(video_input, prediction, name='full_model')
 
 
-def main():
-    single_frame_encoder = single_frame_model()
-    multi_frame_encoder = multi_frame_model(num_frames=NUM_FRAMES)
-    model = full_model(single_frame_encoder, multi_frame_encoder, num_frames=NUM_FRAMES)
-    single_frame_encoder.summary()
-    multi_frame_encoder.summary()
-    model.summary()
-
+def benchmark_models(model, single_frame_encoder, multi_frame_encoder, num_frames=30):
     frames = np.zeros(shape=(1, NUM_FRAMES, 108, 192, 3))
     single_frame = np.zeros(shape=(1, 108, 192, 3))
     encoded_frames = np.zeros(shape=(1, NUM_FRAMES, 4, 6, 1280))
 
-    FRAMES = 30
-    print('Benchmarking entire model')
     start = time.time()
-    for i in range(FRAMES):
+    for i in range(num_frames):
         model.predict(frames)
     end = time.time()
-    print((end - start) / FRAMES)
+    model_latency = (end - start) / num_frames
 
-    print('Benchmarking single frame model')
     start = time.time()
-    for i in range(FRAMES):
+    for i in range(num_frames):
         single_frame_encoder.predict(single_frame)
     end = time.time()
-    print((end - start) / FRAMES)
+    single_frame_latency = (end - start) / num_frames
 
-    print('Benchmarking multi frame model')
     start = time.time()
-    for i in range(FRAMES):
+    for i in range(num_frames):
         multi_frame_encoder.predict(encoded_frames)
     end = time.time()
-    print((end - start) / FRAMES)
+    multi_frame_latency = (end - start) / num_frames
+    
+    return model_latency, single_frame_latency, multi_frame_latency
+
+
+def count_params(model, single_frame_encoder, multi_frame_encoder):
+    return model.count_params(), single_frame_encoder.count_params(), multi_frame_encoder.count_params()
+
+
+def main():
+    single_frame_encoder = single_frame_model()
+    multi_frame_encoder = multi_frame_model(num_frames=NUM_FRAMES)
+    model = full_model(single_frame_encoder, multi_frame_encoder, num_frames=NUM_FRAMES)
+    # single_frame_encoder.summary()
+    # multi_frame_encoder.summary()
+    # model.summary()
+    
+    print('Benchmarking models')
+    model_latency, single_frame_latency, multi_frame_latency = benchmark_models(model,
+                                                                                single_frame_encoder,
+                                                                                multi_frame_encoder,
+                                                                                num_frames=30)
+    model_params, single_frame_params, multi_frame_params = count_params(model,
+                                                                         single_frame_encoder,
+                                                                         multi_frame_encoder)
+    print('Full model:  \t{:.4f} sec\t{:>12,} params'.format(model_latency, model_params))
+    print('Single frame:\t{:.4f} sec\t{:>12,} params'.format(single_frame_latency, single_frame_params))
+    print('Multi frame: \t{:.4f} sec\t{:>12,} params'.format(multi_frame_latency, multi_frame_params))
 
 
 if __name__ == '__main__':

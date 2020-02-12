@@ -43,7 +43,7 @@ def temporal_top_k_accuracy(y_true, y_pred):
     return tf.keras.metrics.sparse_top_k_categorical_accuracy(tf.argmax(y_true, axis=-1), avg_pred, k=2)
 
 
-def main(should_prune=False):
+def main():
 
     def yield_from_generator(g):
         def callable_generator():
@@ -63,17 +63,6 @@ def main(should_prune=False):
 
     single_frame_encoder = model.single_frame_model()
     multi_frame_model = model.multi_frame_model(num_frames=NUM_FRAMES)
-
-    if should_prune:
-        pruning_params = {
-            'pruning_schedule': sparsity.PolynomialDecay(initial_sparsity=0.2,
-                                                                 final_sparsity=0.8,
-                                                                 begin_step=PRUNING_START_EPOCH,
-                                                                 end_step=PRUNING_END_EPOCH,
-                                                                 frequency=PRUNE_FREQ)
-        }
-        single_frame_encoder = sparsity.prune_low_magnitude(single_frame_encoder, **pruning_params)
-        multi_frame_model = sparsity.prune_low_magnitude(multi_frame_model, **pruning_params)
 
     full_model = model.full_model(single_frame_encoder, multi_frame_model, num_frames=NUM_FRAMES)
     single_frame_encoder.summary()
@@ -132,12 +121,6 @@ def main(should_prune=False):
         TensorBoard(log_dir=tensorboard_dir, histogram_freq=2, write_images=True),
     ]
 
-    if should_prune:
-        callbacks.extend([
-            sparsity.UpdatePruningStep(),
-            sparsity.PruningSummaries(log_dir=pruning_dir)
-        ])
-
     hist = full_model.fit(
         train_data_generator,
         steps_per_epoch=steps_per_epoch,
@@ -181,4 +164,4 @@ def main(should_prune=False):
 
 
 if __name__ == '__main__':
-    main(should_prune='prune' in sys.argv)
+    main()
