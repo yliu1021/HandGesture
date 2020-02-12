@@ -126,7 +126,6 @@ def single_frame_model():
     x = frame_input
 
     x = MobileNetV2(include_top=False, weights='imagenet', input_shape=input_shape)(x)
-    x = SeparableConv2D(filters=1280, kernel_size=3, strides=2, activation='relu')(x)
 
     return Model(frame_input, x, name='single_frame_encoder')
 
@@ -165,7 +164,7 @@ def nonlocal_block(x, squeeze_size=512):
 
 
 def multi_frame_model(num_frames=None):
-    encoded_frame_input = Input(shape=(num_frames, 5, 8, 1280))
+    encoded_frame_input = Input(shape=(num_frames, 4, 6, 1280))
     x = encoded_frame_input
 
     x = TimeDistributed(Flatten())(x)
@@ -201,7 +200,7 @@ def full_model(single_frame_encoder, multi_frame_encoder, num_frames=None):
 def benchmark_models(model, single_frame_encoder, multi_frame_encoder, num_frames=30):
     frames = np.zeros(shape=(1, NUM_FRAMES, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
     single_frame = np.zeros(shape=(1, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
-    encoded_frames = np.zeros(shape=(1, NUM_FRAMES, 5, 8, 1280))
+    encoded_frames = np.zeros(shape=(1, NUM_FRAMES, 4, 6, 1280))
 
     start = time.time()
     for i in range(num_frames):
