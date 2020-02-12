@@ -181,9 +181,11 @@ def convert_to_tflite():
 
 if __name__ == '__main__':
     tf.keras.backend.set_learning_phase(0)
-    model_loc = sys.argv[1]
+    training_run = sys.argv[1]
+    model_loc = sys.argv[2]
 
-    training_run = 'run24'
+    os.makedirs(os.path.join('./inference', training_run), exist_ok=True)
+
     single_frame_encoder = model.single_frame_model()
     multi_frame_encoder = model.multi_frame_model(num_frames=12)
     full_model = model.full_model(single_frame_encoder, multi_frame_encoder, num_frames=12)
