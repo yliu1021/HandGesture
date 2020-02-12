@@ -104,11 +104,11 @@ def slow_pathway_model():
     slow_frame_input = Input(shape=(SLOW_FRAMES, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
     x = slow_frame_input
     
-    res_0_fast = Input(shape=(FAST_FRAMES, 26, 47, 8))
-    res_1_fast = Input(shape=(FAST_FRAMES, 26, 47, 32))
-    res_2_fast = Input(shape=(FAST_FRAMES, 13, 24, 64))
-    res_3_fast = Input(shape=(FAST_FRAMES, 7, 12, 128))
-    res_4_fast = Input(shape=(FAST_FRAMES, 4, 6, 256))
+    res_0_fast = Input(shape=(FAST_FRAMES, 53, 95, 8))
+    res_1_fast = Input(shape=(FAST_FRAMES, 53, 95, 32))
+    res_2_fast = Input(shape=(FAST_FRAMES, 27, 48, 64))
+    res_3_fast = Input(shape=(FAST_FRAMES, 14, 24, 128))
+    res_4_fast = Input(shape=(FAST_FRAMES, 7, 12, 256))
     
     x = Conv3D(filters=64, kernel_size=(1, 7, 7), padding='same')(x)
     x = BatchNormalization()(x)
@@ -147,7 +147,7 @@ def slow_pathway_model():
 
 def slowfast_model(fast_model, slow_model):
     video_input = Input(shape=(FAST_FRAMES, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
-    slow_video_input = tf.gather(video_input, (0, 8), axis=1)
+    slow_video_input = tf.gather(video_input, tf.range(0, FAST_FRAMES, 8), axis=1)
     
     res_0_fast, res_1_fast, res_2_fast, res_3_fast, res_4_fast = fast_model(video_input)
     res_4_slow = slow_model([slow_video_input, res_0_fast, res_1_fast, res_2_fast, res_3_fast, res_4_fast])
