@@ -183,7 +183,7 @@ if __name__ == '__main__':
     tf.keras.backend.set_learning_phase(0)
     model_loc = sys.argv[1]
 
-    training_run = 'run23'
+    training_run = 'run24'
     single_frame_encoder = model.single_frame_model()
     multi_frame_encoder = model.multi_frame_model(num_frames=12)
     full_model = model.full_model(single_frame_encoder, multi_frame_encoder, num_frames=12)
@@ -200,3 +200,5 @@ if __name__ == '__main__':
     else:
         single_frame_encoder.save(os.path.join('./inference', training_run, 'single_frame.h5'))
         multi_frame_encoder.save(os.path.join('./inference', training_run, 'multi_frame.h5'))
+        single_frame_encoder.save(os.path.join('./inference', training_run, 'single_frame.tf'))
+        multi_frame_encoder.save(os.path.join('./inference', training_run, 'multi_frame.tf'))
