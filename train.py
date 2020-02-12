@@ -6,7 +6,6 @@ import glob
 import tensorflow as tf
 from tensorflow.keras.optimizers import *
 from tensorflow.keras.callbacks import *
-from tensorflow_model_optimization.sparsity import keras as sparsity
 import matplotlib.pyplot as plt
 
 import model
@@ -56,17 +55,14 @@ def main():
     os.makedirs(training_dir, exist_ok=True)
     os.makedirs(tensorboard_dir, exist_ok=True)
     os.makedirs(pruning_dir, exist_ok=True)
-    single_frame_encoder_model_save_dir = os.path.join(training_dir, 'single_frame_encoder.h5')
-    multi_frame_encoder_model_save_dir = os.path.join(training_dir, 'multi_frame_model.h5')
+    single_frame_encoder_model_save_dir = os.path.join(training_dir, 'fast_model.h5')
+    multi_frame_encoder_model_save_dir = os.path.join(training_dir, 'slow_model.h5')
     full_model_save_dir = os.path.join(training_dir, 'full_model.h5')
     starting_epoch = 0
 
-    single_frame_encoder = model.single_frame_model()
-    multi_frame_model = model.multi_frame_model(num_frames=NUM_FRAMES)
-
-    full_model = model.full_model(single_frame_encoder, multi_frame_model, num_frames=NUM_FRAMES)
-    single_frame_encoder.summary()
-    multi_frame_model.summary()
+    fast_model, slow_model, full_model = model.build_model()
+    fast_model.summary()
+    slow_model.summary()
 
     previous_saves = sorted(glob.glob(os.path.join(training_dir, 'full_model.??.h5')))
     if len(previous_saves) != 0:
@@ -135,12 +131,7 @@ def main():
         initial_epoch=starting_epoch,
     )
 
-    if should_prune:
-        single_frame_encoder = sparsity.strip_pruning(single_frame_encoder)
-        multi_frame_model = sparsity.strip_pruning(multi_frame_model)
-        full_model = sparsity.strip_pruning(full_model)
-
-    single_frame_encoder.save(single_frame_encoder_model_save_dir)
+    single_frame_model.save(single_frame_encoder_model_save_dir)
     multi_frame_model.save(multi_frame_encoder_model_save_dir)
     full_model.save(full_model_save_dir)
 

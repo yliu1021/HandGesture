@@ -11,241 +11,186 @@ from tensorflow.keras.regularizers import L1L2, l1_l2
 from constants import *
 
 
-def tf_diff(x):
-    return x[:, 1:] - x[:, :-1]
-
-
-def stem(x):
-    x = Conv2D(filters=32, kernel_size=3, strides=2, activation='relu', padding='same')(x)
-    x = Conv2D(filters=32, kernel_size=3, activation='relu', padding='same')(x)
-    x = Conv2D(filters=64, kernel_size=3, activation='relu', padding='same')(x)
-    x = BatchNormalization(renorm=False)(x)
-
-    b1 = MaxPooling2D(pool_size=(3, 3), strides=2, padding='same')(x)
-    b2 = SeparableConv2D(filters=32, kernel_size=3, strides=2, activation='relu', padding='same')(x)
-    b2 = BatchNormalization(renorm=False)(b2)
-    x = Concatenate(axis=-1)([b1, b2])
-
-    b1 = Conv2D(filters=64, kernel_size=1, activation='relu', padding='same')(x)
-    b1 = SeparableConv2D(filters=96, kernel_size=3, activation='relu', padding='same')(b1)
-    b1 = BatchNormalization(renorm=False)(b1)
-    b2 = Conv2D(filters=64, kernel_size=1, activation='relu', padding='same')(x)
-    b2 = SeparableConv2D(filters=64, kernel_size=(7, 1), activation='relu', padding='same')(b2)
-    b2 = SeparableConv2D(filters=64, kernel_size=(1, 7), activation='relu', padding='same')(b2)
-    b2 = SeparableConv2D(filters=96, kernel_size=3, activation='relu', padding='same')(b2)
-    b2 = BatchNormalization(renorm=False)(b2)
-    x = Concatenate(axis=-1)([b1, b2])
-
-    b1 = SeparableConv2D(filters=192, kernel_size=3, strides=2, activation='relu', padding='same')(x)
-    b2 = MaxPooling2D(pool_size=(2, 2), strides=2, padding='same')(x)
-    x = Concatenate(axis=-1)([b1, b2])
-    return x
-
-
-def blockA(x):
-    reg = L1L2(l1=0., l2=0.001)
-
-    res1 = Conv2D(filters=32, kernel_size=1, activation='relu', padding='same', kernel_regularizer=reg)(x)
-
-    res2 = Conv2D(filters=32, kernel_size=1, activation='relu', padding='same', kernel_regularizer=reg)(x)
-    res2 = SeparableConv2D(filters=32, kernel_size=3, activation='relu', padding='same', kernel_regularizer=reg)(res2)
-
-    res3 = Conv2D(filters=32, kernel_size=1, activation='relu', padding='same', kernel_regularizer=reg)(x)
-    res3 = SeparableConv2D(filters=48, kernel_size=3, activation='relu', padding='same', kernel_regularizer=reg)(res3)
-    res3 = SeparableConv2D(filters=48, kernel_size=3, activation='relu', padding='same', kernel_regularizer=reg)(res3)
-
-    res = Concatenate(axis=-1)([res1, res2, res3])
-    res = Conv2D(filters=384, kernel_size=1, activation=None, padding='same')(res)
-    res = BatchNormalization(renorm=False)(res)
-
-    x = Lambda(lambda a: a[0] + a[1]*0.15)([x, res])
-    return x
-
-
-def blockB(x):
-    reg = L1L2(l1=0., l2=0.001)
-
-    res1 = Conv2D(filters=192, kernel_size=1, activation='relu', padding='same', kernel_regularizer=reg)(x)
-
-    res2 = Conv2D(filters=128, kernel_size=1, activation='relu', padding='same', kernel_regularizer=reg)(x)
-    res2 = SeparableConv2D(filters=160, kernel_size=(7, 1), activation='relu', padding='same',
-                           kernel_regularizer=reg)(res2)
-    res2 = SeparableConv2D(filters=192, kernel_size=(1, 7), activation='relu', padding='same',
-                           kernel_regularizer=reg)(res2)
-
-    res = Concatenate(axis=-1)([res1, res2])
-    res = Conv2D(filters=1152, kernel_size=1, activation=None, padding='same')(res)
-    res = BatchNormalization(renorm=False)(res)
-
-    x = Lambda(lambda a: a[0] + a[1]*0.1)([x, res])
-    return x
-
-
-def reductionA(x):
-    reg = L1L2(l1=0., l2=0.001)
-
-    b1 = MaxPooling2D(pool_size=3, strides=2, padding='same')(x)
-
-    b2 = SeparableConv2D(filters=384, kernel_size=3, strides=2, activation='relu', padding='same')(x)
-    b2 = BatchNormalization(renorm=False)(b2)
-    
-    b3 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same')(x)
-    b3 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same')(b3)
-    b3 = SeparableConv2D(filters=384, kernel_size=3, strides=2, activation='relu', padding='same')(b3)
-    b3 = BatchNormalization(renorm=False)(b3)
-
-    x = Concatenate(axis=-1)([b1, b2, b3])
-    return x
-
-
-def reductionB(x):
-    reg = L1L2(l1=0., l2=0.001)
-
-    b1 = MaxPooling2D(pool_size=3, strides=2, padding='same')(x)
-
-    b2 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same')(x)
-    b2 = SeparableConv2D(filters=384, kernel_size=3, strides=2, activation='relu', padding='same')(b2)
-    b2 = BatchNormalization(renorm=False)(b2)
-    
-    b3 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same')(x)
-    b3 = SeparableConv2D(filters=256, kernel_size=3, strides=2, activation='relu', padding='same')(b3)
-    b3 = BatchNormalization(renorm=False)(b3)
-    
-    b4 = Conv2D(filters=256, kernel_size=1, activation='relu', padding='same')(x)
-    b4 = SeparableConv2D(filters=256, kernel_size=3, activation='relu', padding='same')(b4)
-    b4 = SeparableConv2D(filters=256, kernel_size=3, strides=2, activation='relu', padding='same')(b4)
-    b4 = BatchNormalization(renorm=False)(b4)
-
-    x = Concatenate(axis=-1)([b1, b2, b3, b4])
-    return x
-
-
-def single_frame_model():
-    input_shape = (IMAGE_HEIGHT, IMAGE_WIDTH, 3)
-    frame_input = Input(shape=input_shape)
-    x = frame_input
-
-    x = MobileNetV2(include_top=False, weights='imagenet', input_shape=input_shape)(x)
-
-    return Model(frame_input, x, name='single_frame_encoder')
-
-
-def temporal_shuffle(x):
-    _, num_frames, height, width, channels = x.shape
-    frames = tf.split(x, num_or_size_splits=num_frames, axis=1)
-    frames = [tf.squeeze(frame, axis=[1]) for frame in frames]
-    split_frames = [tf.split(frame, num_frames, axis=-1) for frame in frames]
-    shuffled_frames = list(map(list, zip(*split_frames)))
-    shuffled_frames = [Concatenate(axis=-1)(frame) for frame in shuffled_frames]
-    shuffled_frames = tf.stack(shuffled_frames, axis=1)
-    return shuffled_frames
-
-
-def nonlocal_block(x, squeeze_size=512):
-    _, num_frames, height, width, channels = x.shape
-    
-    theta = Conv3D(filters=squeeze_size, kernel_size=1, activation='relu')(x)
-    phi = Conv3D(filters=squeeze_size, kernel_size=1, activation='relu')(x)
-
-    theta = Reshape((num_frames * height * width, squeeze_size))(theta)
-    phi = Reshape((num_frames * height * width, squeeze_size))(phi)
-    phi = tf.transpose(phi, perm=[0, 2, 1])
-    
-    att = theta @ phi
-    att = Activation('softmax')(att)
-
-    g = Conv3D(filters=squeeze_size, kernel_size=1)(x)
-    g = Reshape((num_frames * height * width, squeeze_size))(g)
-    
-    res = att @ g
-    res = Reshape((num_frames, height, width, squeeze_size))(res)
-    res = Conv3D(filters=channels, kernel_size=1)(res)
-    return res + x
-
-
-def multi_frame_model(num_frames=None):
-    encoded_frame_input = Input(shape=(num_frames, 4, 6, 1280))
-    x = encoded_frame_input
-
-    x = TimeDistributed(Flatten())(x)
-    x = Dense(1024, activation='relu')(x)
-    x = BatchNormalization()(x)
-    x = Conv1D(filters=2048, kernel_size=2, activation='relu')(x)
-    x = BatchNormalization()(x)
-
-    filter_sizes = [2048, 2048, 1024, 1024, 1024]
-    kernel_sizes = [3, 3, 3, 3, 3]
-    for filter_size, kernel_size in zip(filter_sizes, kernel_sizes):
-        x = Conv1D(filters=filter_size, kernel_size=kernel_size, activation='relu')(x)
+def identity_block(input_tensor, kernel_size, filters, non_degenerate_temporal_conv=True):
+    filters1, filters2, filters3 = filters
+    if non_degenerate_temporal_conv:
+        x = Conv3D(filters1, (3, 1, 1), padding='same')(input_tensor)
         x = BatchNormalization()(x)
-
-    x = Dense(NUM_CLASSES)(x)
-    return Model(encoded_frame_input, x, name='multi_frame_model')
-
-
-def full_model(single_frame_encoder, multi_frame_encoder, num_frames=None):
-    video_input = Input(shape=(num_frames, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
-    frame_encoded = TimeDistributed(single_frame_encoder)(video_input)
-
-    use_diffs = False
-    if use_diffs:
-        frame_diffs = Lambda(tf_diff)(frame_encoded)
-        prediction = multi_frame_encoder(frame_diffs)
+        x = Activation('relu')(x)
     else:
-        prediction = multi_frame_encoder(frame_encoded)
+        x = Conv3D(filters1, (1, 1, 1))(input_tensor)
+        x = BatchNormalization()(x)
+        x = Activation('relu')(x)
 
-    return Model(video_input, prediction, name='full_model')
+    x = Conv3D(filters2, kernel_size, padding='same')(x)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+
+    x = Conv3D(filters3, (1, 1, 1))(x)
+    x = BatchNormalization()(x)
+
+    x = Add()([x, input_tensor])
+    x = Activation('relu')(x)
+    return x
 
 
-def benchmark_models(model, single_frame_encoder, multi_frame_encoder, num_frames=30):
-    frames = np.zeros(shape=(1, NUM_FRAMES, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
-    single_frame = np.zeros(shape=(1, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
-    encoded_frames = np.zeros(shape=(1, NUM_FRAMES, 4, 6, 1280))
-
-    start = time.time()
-    for i in range(num_frames):
-        model.predict(frames)
-    end = time.time()
-    model_latency = (end - start) / num_frames
-
-    start = time.time()
-    for i in range(num_frames):
-        single_frame_encoder.predict(single_frame)
-    end = time.time()
-    single_frame_latency = (end - start) / num_frames
-
-    start = time.time()
-    for i in range(num_frames):
-        multi_frame_encoder.predict(encoded_frames)
-    end = time.time()
-    multi_frame_latency = (end - start) / num_frames
+def conv_block(input_tensor, kernel_size, filters, strides=(1, 2, 2), non_degenerate_temporal_conv=True):
+    filters1, filters2, filters3 = filters
+    if non_degenerate_temporal_conv:
+        x = Conv3D(filters1, (3, 1, 1), strides=strides, padding='same')(input_tensor)
+        x = BatchNormalization()(x)
+        x = Activation('relu')(x)
+    else:
+        x = Conv3D(filters1, (1, 1, 1), strides=strides)(input_tensor)
+        x = BatchNormalization()(x)
+        x = Activation('relu')(x)
     
-    return model_latency, single_frame_latency, multi_frame_latency
+    x = Conv3D(filters2, kernel_size, padding='same')(x)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+    
+    x = Conv3D(filters3, (1, 1 ,1))(x)
+    x = BatchNormalization()(x)
+    
+    shortcut = Conv3D(filters3, (1, 1, 1), strides=strides)(input_tensor)
+    shortcut = BatchNormalization()(shortcut)
+
+    x = Add()([x, shortcut])
+    x = Activation('relu')(x)
+    return x
 
 
-def count_params(model, single_frame_encoder, multi_frame_encoder):
-    return model.count_params(), single_frame_encoder.count_params(), multi_frame_encoder.count_params()
+def lateral_connection(fast_res_block, slow_res_block, alpha=8, beta=1/8):
+    num_filters = int(2*beta*int(fast_res_block.shape[4]))
+    lateral = Conv3D(num_filters, padding='same', kernel_size=(5, 1, 1), strides=(alpha, 1, 1))(fast_res_block)
+    connection = Concatenate(axis=-1)([slow_res_block,lateral])
+    return connection
+
+
+def fast_pathway_model():
+    fast_frame_input = Input(shape=(FAST_FRAMES, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
+    x = fast_frame_input
+    
+    x = Conv3D(filters=8, kernel_size=(5, 7, 7), padding='same')(x)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+    x = MaxPooling3D((1, 3, 3), strides=(1, 2, 2))(x)
+    res_0 = x
+    
+    x = conv_block(res_0, kernel_size=(1, 3, 3), filters=(64//8, 64//8, 256//8), strides=(1, 1, 1))
+    x = identity_block(x, kernel_size=(1, 3, 3), filters=(64//8, 64//8, 256//8))
+    res_1 = identity_block(x, kernel_size=(1, 3, 3), filters=(64//8, 64//8, 256//8))
+    
+    x = conv_block(res_1, kernel_size=(1, 3, 3), filters=(128//8, 128//8, 512//8))
+    x = identity_block(x, kernel_size=(1, 3, 3), filters=(128//8, 128//8, 512//8))
+    x = identity_block(x, kernel_size=(1, 3, 3), filters=(128//8, 128//8, 512//8))
+    res_2 = identity_block(x, kernel_size=(1, 3, 3), filters=(128//8, 128//8, 512//8))
+
+    x = conv_block(res_2, kernel_size=(1, 3, 3), filters=(256//8, 256//8, 1024//8))
+    x = identity_block(x, kernel_size=(1, 3, 3), filters=(256//8, 256//8, 1024//8))
+    x = identity_block(x, kernel_size=(1, 3, 3), filters=(256//8, 256//8, 1024//8))
+    x = identity_block(x, kernel_size=(1, 3, 3), filters=(256//8, 256//8, 1024//8))
+    x = identity_block(x, kernel_size=(1, 3, 3), filters=(256//8, 256//8, 1024//8))
+    res_3 = identity_block(x, kernel_size=(1, 3, 3), filters=(256//8, 256//8, 1024//8))
+
+    x = conv_block(res_3, kernel_size=(1, 3, 3), filters=(512//8, 512//8, 2048//8))
+    x = identity_block(x, kernel_size=(1, 3, 3), filters=(512//8, 512//8, 2048//8))
+    res_4 = identity_block(x, kernel_size=(1, 3, 3), filters=(512//8, 512//8, 2048//8))
+    
+    return Model(fast_frame_input, [res_0, res_1, res_2, res_3, res_4], name='fast_model')
+
+
+def slow_pathway_model():
+    slow_frame_input = Input(shape=(SLOW_FRAMES, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
+    x = slow_frame_input
+    
+    res_0_fast = Input(shape=(FAST_FRAMES, 26, 47, 8))
+    res_1_fast = Input(shape=(FAST_FRAMES, 26, 47, 32))
+    res_2_fast = Input(shape=(FAST_FRAMES, 13, 24, 64))
+    res_3_fast = Input(shape=(FAST_FRAMES, 7, 12, 128))
+    res_4_fast = Input(shape=(FAST_FRAMES, 4, 6, 256))
+    
+    x = Conv3D(filters=64, kernel_size=(1, 7, 7), padding='same')(x)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+    x = MaxPooling3D((1, 3, 3), strides=(1, 2, 2))(x)
+    res_0 = x
+    res_0 = lateral_connection(res_0_fast, res_0)
+
+    x = conv_block(res_0, kernel_size=(1, 3, 3), filters=(64, 64, 256), strides=(1, 1, 1), non_degenerate_temporal_conv=False)
+    x = identity_block(x, kernel_size=(1, 3, 3), filters=(64, 64, 256), non_degenerate_temporal_conv=False)
+    res_1 = identity_block(x, kernel_size=(1, 3, 3), filters=(64, 64, 256), non_degenerate_temporal_conv=False)
+    res_1 = lateral_connection(res_1_fast, res_1)
+    
+    x = conv_block(res_1, kernel_size=(1, 3, 3), filters=(128, 128, 512), non_degenerate_temporal_conv=False)
+    x = identity_block(x, kernel_size=(1, 3, 3), filters=(128, 128, 512), non_degenerate_temporal_conv=False)
+    x = identity_block(x, kernel_size=(1, 3, 3), filters=(128, 128, 512), non_degenerate_temporal_conv=False)
+    res_2 = identity_block(x, kernel_size=(1, 3, 3), filters=(128, 128, 512), non_degenerate_temporal_conv=False)
+    res_2 = lateral_connection(res_2_fast, res_2)
+    
+    x = conv_block(res_2, kernel_size=(1, 3, 3), filters=(256, 256, 1024))
+    x = identity_block(x, kernel_size=(1, 3, 3), filters=(256, 256, 1024))
+    x = identity_block(x, kernel_size=(1, 3, 3), filters=(256, 256, 1024))
+    x = identity_block(x, kernel_size=(1, 3, 3), filters=(256, 256, 1024))
+    x = identity_block(x, kernel_size=(1, 3, 3), filters=(256, 256, 1024))
+    res_3 = identity_block(x, kernel_size=(1, 3, 3), filters=(256, 256, 1024))
+    res_3 = lateral_connection(res_3_fast, res_3)
+
+    x = conv_block(res_3, kernel_size=(1, 3, 3), filters=(512, 512, 2048))
+    x = identity_block(x, kernel_size=(1, 3, 3), filters=(512, 512, 2048))
+    res_4 = identity_block(x, kernel_size=(1, 3, 3), filters=(512, 512, 2048))
+    res_4 = lateral_connection(res_4_fast, res_4)
+    
+    return Model([slow_frame_input, res_0_fast, res_1_fast, res_2_fast, res_3_fast, res_4_fast],
+                 res_4, name='slow_model')
+
+
+def slowfast_model(fast_model, slow_model):
+    video_input = Input(shape=(FAST_FRAMES, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
+    slow_video_input = tf.gather(video_input, (0, 8), axis=1)
+    
+    res_0_fast, res_1_fast, res_2_fast, res_3_fast, res_4_fast = fast_model(video_input)
+    res_4_slow = slow_model([slow_video_input, res_0_fast, res_1_fast, res_2_fast, res_3_fast, res_4_fast])
+    
+    fast_res = GlobalAveragePooling3D()(res_4_fast)
+    slow_res = GlobalAveragePooling3D()(res_4_slow)
+    
+    out = Concatenate(axis=-1)([fast_res, slow_res])
+    out = tf.expand_dims(out, axis=1)
+    out = Dense(NUM_CLASSES)(out)
+    
+    return Model(video_input, out, name='slowfast_model')
+
+
+def build_model():
+    fast_model = fast_pathway_model()
+    slow_model = slow_pathway_model()
+    full_model = slowfast_model(fast_model, slow_model)
+    
+    return fast_model, slow_model, full_model
+
+
+def benchmark_model(full_model, iters=30):
+    frames = np.zeros(shape=(1, FAST_FRAMES, IMAGE_HEIGHT, IMAGE_WIDTH, 3))
+
+    start = time.time()
+    for i in range(iters):
+        full_model.predict(frames)
+    end = time.time()
+    model_latency = (end - start) / iters
+    
+    return model_latency
 
 
 def main():
-    single_frame_encoder = single_frame_model()
-    multi_frame_encoder = multi_frame_model(num_frames=NUM_FRAMES)
-    model = full_model(single_frame_encoder, multi_frame_encoder, num_frames=NUM_FRAMES)
-    # single_frame_encoder.summary()
-    # multi_frame_encoder.summary()
-    # model.summary()
+    fast_model, slow_model, full_model = build_model()
+    fast_model.summary()
+    slow_model.summary()
+    full_model.summary()
     
-    print('Benchmarking models')
-    model_latency, single_frame_latency, multi_frame_latency = benchmark_models(model,
-                                                                                single_frame_encoder,
-                                                                                multi_frame_encoder,
-                                                                                num_frames=30)
-    model_params, single_frame_params, multi_frame_params = count_params(model,
-                                                                         single_frame_encoder,
-                                                                         multi_frame_encoder)
-    print('Full model:  \t{:.4f} sec\t{:>12,} params'.format(model_latency, model_params))
-    print('Single frame:\t{:.4f} sec\t{:>12,} params'.format(single_frame_latency, single_frame_params))
-    print('Multi frame: \t{:.4f} sec\t{:>12,} params'.format(multi_frame_latency, multi_frame_params))
+    print('Benchmarking model...')
+    latency = benchmark_model(full_model)
+    print(f'Speed: {latency:.4f}')
 
 
 if __name__ == '__main__':

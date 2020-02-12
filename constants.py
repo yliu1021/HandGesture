@@ -1,5 +1,5 @@
-IMAGE_WIDTH = 192
-IMAGE_HEIGHT = 108
+IMAGE_WIDTH = 192 // 2
+IMAGE_HEIGHT = 108 // 2
 
 TRAINING_RUN = 'run25'
 BATCH_SIZE = 64
@@ -11,6 +11,7 @@ PRUNING_START_EPOCH = 25
 PRUNING_END_EPOCH = 75
 PRUNE_FREQ = 5
 
-NUM_FRAMES = 12     # number of frames
-FAST_FRAMES = 16    # number of frames with high FPS
-MIN_FPS = 1         # recommended to be less than or equal to 12 because the dataset has a max fps of 12
+SLOW_FRAMES = 2
+FAST_FRAMES = 16
+NUM_FRAMES = FAST_FRAMES
+MIN_FPS = 1
